@@ -32,7 +32,7 @@ use super::ToId;
 
 mod builder;
 mod error;
-mod selector;
+pub mod selector;
 
 pub use builder::Builder;
 pub use error::{Error, Result};

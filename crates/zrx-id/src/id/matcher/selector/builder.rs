@@ -58,7 +58,7 @@ impl<'a> Builder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use zrx_id::Builder;
+    /// use zrx_id::matcher::selector::Builder;
     ///
     /// // Create selector builder
     /// let mut builder = Builder::new();
