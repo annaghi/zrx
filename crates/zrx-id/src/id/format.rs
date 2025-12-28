@@ -103,22 +103,6 @@ pub struct Format<const N: usize> {
 // ----------------------------------------------------------------------------
 
 impl<const N: usize> Format<N> {
-    /// Creates a formatted string builder.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_id::format::Format;
-    ///
-    /// // Create formatted string builder
-    /// let mut builder = Format::<3>::builder();
-    /// ```
-    #[inline]
-    #[must_use]
-    pub fn builder<'a>() -> Builder<'a, N> {
-        Builder::new()
-    }
-
     /// Converts a formatted string into a builder.
     ///
     /// This method creates a builder from the current formatted string, which
