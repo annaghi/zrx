@@ -56,23 +56,21 @@ pub struct Builder {
 // Implementations
 // ----------------------------------------------------------------------------
 
-impl Builder {
+impl Matcher {
     /// Creates a matcher builder.
-    ///
-    /// Note that the canonical way to create a [`Matcher`] is to invoke the
-    /// [`Matcher::builder`] method, which creates an instance of [`Builder`].
     ///
     /// # Examples
     ///
     /// ```
-    /// use zrx_id::matcher::Builder;
+    /// use zrx_id::Matcher;
     ///
     /// // Create matcher builder
-    /// let mut builder = Builder::new();
+    /// let mut builder = Matcher::builder();
     /// ```
+    #[inline]
     #[must_use]
-    pub fn new() -> Self {
-        Self {
+    pub fn builder() -> Builder {
+        Builder {
             provider: GlobSetBuilder::new(),
             resource: GlobSetBuilder::new(),
             variant: GlobSetBuilder::new(),
@@ -81,7 +79,11 @@ impl Builder {
             fragment: GlobSetBuilder::new(),
         }
     }
+}
 
+// ----------------------------------------------------------------------------
+
+impl Builder {
     /// Extends the matcher with the given selector.
     ///
     /// This method adds a [`Selector`][] to the matcher, creating a [`Glob`]
@@ -215,7 +217,7 @@ impl Default for Builder {
     /// ```
     #[inline]
     fn default() -> Self {
-        Self::new()
+        Matcher::builder()
     }
 }
 

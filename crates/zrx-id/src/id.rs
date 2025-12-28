@@ -126,22 +126,6 @@ pub struct Id {
 // ----------------------------------------------------------------------------
 
 impl Id {
-    /// Creates an identifier builder.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_id::Id;
-    ///
-    /// // Create identifier builder
-    /// let mut builder = Id::builder();
-    /// ```
-    #[inline]
-    #[must_use]
-    pub fn builder<'a>() -> Builder<'a> {
-        Builder::new()
-    }
-
     /// Creates a builder from this formatted string.
     ///
     /// This method creates a builder from the current formatted string, which

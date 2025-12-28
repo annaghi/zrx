@@ -50,28 +50,30 @@ pub struct Builder<'a, const N: usize> {
 // Implementations
 // ----------------------------------------------------------------------------
 
-impl<'a, const N: usize> Builder<'a, N> {
+impl<const N: usize> Format<N> {
     /// Creates a formatted string builder.
-    ///
-    /// Note that the canonical way to create a [`Format`] is to invoke the
-    /// [`Format::builder`] method, which creates an instance of [`Builder`].
     ///
     /// # Examples
     ///
     /// ```
-    /// use zrx_id::format::Builder;
+    /// use zrx_id::format::Format;
     ///
     /// // Create formatted string builder
-    /// let mut builder = Builder::<3>::new();
+    /// let mut builder = Format::<3>::builder();
     /// ```
+    #[inline]
     #[must_use]
-    pub fn new() -> Self {
-        Self {
+    pub fn builder<'a>() -> Builder<'a, N> {
+        Builder {
             source: None,
             values: [const { None }; N],
         }
     }
+}
 
+// ----------------------------------------------------------------------------
+
+impl<'a, const N: usize> Builder<'a, N> {
     /// Updates the value at the given index.
     ///
     /// # Panics
@@ -269,6 +271,6 @@ impl<const N: usize> Default for Builder<'_, N> {
     /// ```
     #[inline]
     fn default() -> Self {
-        Self::new()
+        Format::builder()
     }
 }

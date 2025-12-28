@@ -32,7 +32,7 @@ use super::ToId;
 
 mod builder;
 mod error;
-mod selector;
+pub mod selector;
 
 pub use builder::Builder;
 pub use error::{Error, Result};
@@ -95,22 +95,6 @@ pub struct Matcher {
 // ----------------------------------------------------------------------------
 
 impl Matcher {
-    /// Creates a matcher builder.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_id::Matcher;
-    ///
-    /// // Create matcher builder
-    /// let mut builder = Matcher::builder();
-    /// ```
-    #[inline]
-    #[must_use]
-    pub fn builder() -> Builder {
-        Builder::new()
-    }
-
     /// Returns whether the given identifier matches any selector.
     ///
     /// Components are compared in descending variability and their likelihood
