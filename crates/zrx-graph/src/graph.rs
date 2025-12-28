@@ -97,34 +97,6 @@ pub struct Graph<T> {
 // ----------------------------------------------------------------------------
 
 impl<T> Graph<T> {
-    /// Creates a graph builder.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use std::error::Error;
-    /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// use zrx_graph::Graph;
-    ///
-    /// // Create graph builder
-    /// let mut builder = Graph::builder();
-    /// let a = builder.add_node("a");
-    /// let b = builder.add_node("b");
-    ///
-    /// // Create edges between nodes
-    /// builder.add_edge(a, b, 0)?;
-    /// # Ok(())
-    /// # }
-    /// ```
-    #[inline]
-    #[must_use]
-    pub fn builder<W>() -> Builder<T, W>
-    where
-        W: Clone,
-    {
-        Builder::new()
-    }
-
     /// Creates an empty graph.
     ///
     /// While an empty graph is not very useful, it's sometimes practical as a
@@ -143,7 +115,7 @@ impl<T> Graph<T> {
     #[inline]
     #[must_use]
     pub fn empty() -> Self {
-        Builder::<T>::new().build()
+        Graph::builder::<()>().build()
     }
 
     /// Creates a topogical traversal starting from the given initial nodes.

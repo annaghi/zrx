@@ -60,37 +60,42 @@ pub struct Edge<W = ()> {
 // Implementations
 // ----------------------------------------------------------------------------
 
-impl<T, W> Builder<T, W> {
+impl<T> Graph<T> {
     /// Creates a graph builder.
-    ///
-    /// Note that the canonical way to create a [`Graph`] is to invoke the
-    /// [`Graph::builder`] method, which creates an instance of [`Builder`].
     ///
     /// # Examples
     ///
     /// ```
     /// # use std::error::Error;
     /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// use zrx_graph::Builder;
+    /// use zrx_graph::Graph;
     ///
     /// // Create graph builder
-    /// let mut builder = Builder::new();
-    /// # let a = builder.add_node("a");
-    /// # let b = builder.add_node("b");
-    /// #
-    /// # // Create edges between nodes
-    /// # builder.add_edge(a, b, 0)?;
+    /// let mut builder = Graph::builder();
+    /// let a = builder.add_node("a");
+    /// let b = builder.add_node("b");
+    ///
+    /// // Create edges between nodes
+    /// builder.add_edge(a, b, 0)?;
     /// # Ok(())
     /// # }
     /// ```
+    #[inline]
     #[must_use]
-    pub fn new() -> Self {
-        Self {
+    pub fn builder<W>() -> Builder<T, W>
+    where
+        W: Clone,
+    {
+        Builder {
             nodes: Vec::new(),
             edges: Vec::new(),
         }
     }
+}
 
+// ----------------------------------------------------------------------------
+
+impl<T, W> Builder<T, W> {
     /// Adds a node to the graph.
     ///
     /// # Examples
@@ -371,6 +376,9 @@ where
     /// ```
     #[inline]
     fn default() -> Self {
-        Self::new()
+        Builder {
+            nodes: Vec::new(),
+            edges: Vec::new(),
+        }
     }
 }
