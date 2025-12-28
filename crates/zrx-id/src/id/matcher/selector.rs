@@ -116,22 +116,6 @@ pub struct Selector {
 // ----------------------------------------------------------------------------
 
 impl Selector {
-    /// Creates a selector builder.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_id::Selector;
-    ///
-    /// // Create selector builder
-    /// let mut builder = Selector::builder();
-    /// ```
-    #[inline]
-    #[must_use]
-    pub fn builder<'a>() -> Builder<'a> {
-        Builder::new()
-    }
-
     /// Creates a builder from this formatted string.
     ///
     /// This method creates a builder from the current formatted string, which

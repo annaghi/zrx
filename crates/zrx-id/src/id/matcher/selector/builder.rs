@@ -49,27 +49,29 @@ pub struct Builder<'a> {
 // Implementations
 // ----------------------------------------------------------------------------
 
-impl<'a> Builder<'a> {
+impl Selector {
     /// Creates a selector builder.
-    ///
-    /// Note that the canonical way to create a [`Selector`] is to invoke the
-    /// [`Selector::builder`] method, which creates an instance of [`Builder`].
     ///
     /// # Examples
     ///
     /// ```
-    /// use zrx_id::matcher::selector::Builder;
+    /// use zrx_id::Selector;
     ///
     /// // Create selector builder
-    /// let mut builder = Builder::new();
+    /// let mut builder = Selector::builder();
     /// ```
+    #[inline]
     #[must_use]
-    pub fn new() -> Self {
-        Self {
+    pub fn builder<'a>() -> Builder<'a> {
+        Builder {
             format: Format::builder().with(0, "zrs"),
         }
     }
+}
 
+// ----------------------------------------------------------------------------
+
+impl<'a> Builder<'a> {
     /// Updates the `provider` component.
     ///
     /// # Examples
