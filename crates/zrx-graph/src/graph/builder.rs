@@ -376,9 +376,6 @@ where
     /// ```
     #[inline]
     fn default() -> Self {
-        Builder {
-            nodes: Vec::new(),
-            edges: Vec::new(),
-        }
+        Graph::builder()
     }
 }
