@@ -48,27 +48,29 @@ pub struct Builder<'a> {
 // Implementations
 // ----------------------------------------------------------------------------
 
-impl<'a> Builder<'a> {
+impl Id {
     /// Creates an identifier builder.
-    ///
-    /// Note that the canonical way to create an [`Id`] is to invoke the
-    /// [`Id::builder`] method, which creates an instance of [`Builder`].
     ///
     /// # Examples
     ///
     /// ```
-    /// use zrx_id::Builder;
+    /// use zrx_id::Id;
     ///
     /// // Create identifier builder
-    /// let mut builder = Builder::new();
+    /// let mut builder = Id::builder();
     /// ```
+    #[inline]
     #[must_use]
-    pub fn new() -> Self {
-        Self {
+    pub fn builder<'a>() -> Builder<'a> {
+        Builder {
             format: Format::builder().with(0, "zri"),
         }
     }
+}
 
+// ----------------------------------------------------------------------------
+
+impl<'a> Builder<'a> {
     /// Updates the `provider` component.
     ///
     /// # Examples
