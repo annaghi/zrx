@@ -25,6 +25,7 @@
 
 //! Topology.
 
+use std::cell::OnceCell;
 use std::rc::Rc;
 
 use super::builder::{Builder, Edge};
@@ -72,8 +73,8 @@ struct TopologyInner {
     outgoing: Adjacency,
     /// Incoming edges.
     incoming: Adjacency,
-    /// Distance matrix.
-    distance: Distance,
+    /// Distance matrix (computed on first access).
+    distance: OnceCell<Distance>,
 }
 
 // ----------------------------------------------------------------------------
@@ -120,7 +121,7 @@ impl Topology {
         Self(Rc::new(TopologyInner {
             outgoing: Adjacency::outgoing(builder),
             incoming: Adjacency::incoming(builder),
-            distance: Distance::new(builder),
+            distance: OnceCell::new(),
         }))
     }
 }
@@ -142,6 +143,10 @@ impl Topology {
     /// Returns a reference to the distance matrix.
     #[inline]
     pub fn distance(&self) -> &Distance {
-        &self.0.distance
+        self.0.distance.get_or_init(|| {
+            // Compute distance matrix on first access, since this incurs cost
+            // of O(n³) because of the usage of the Floyd-Warshall algorithm.
+            Distance::new(&self.0.outgoing)
+        })
     }
 }
