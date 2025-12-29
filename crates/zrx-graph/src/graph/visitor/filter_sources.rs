@@ -148,7 +148,7 @@ impl Iterator for FilterSources<'_> {
             // Emit the node if it's a source, which is true if it can't be
             // reached from any other node in the set through any path
             if !self.nodes.iter().any(|&ancestor| {
-                node != ancestor && self.distance[ancestor][node] != 255
+                node != ancestor && self.distance[ancestor][node] != u8::MAX
             }) {
                 return Some(node);
             }

@@ -149,7 +149,7 @@ impl<T> Graph<T> {
     #[must_use]
     pub fn is_ancestor(&self, source: usize, target: usize) -> bool {
         let distance = self.topology.distance();
-        distance[source][target] != 255
+        distance[source][target] != u8::MAX
     }
 
     /// Returns whether the source node is a descendant of the target node.
@@ -189,7 +189,7 @@ impl<T> Graph<T> {
     #[must_use]
     pub fn is_descendant(&self, source: usize, target: usize) -> bool {
         let distance = self.topology.distance();
-        distance[target][source] != 255
+        distance[target][source] != u8::MAX
     }
 
     /// Returns whether the source node is a predecessor of the target node.

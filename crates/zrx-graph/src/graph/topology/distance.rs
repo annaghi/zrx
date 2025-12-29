@@ -27,7 +27,7 @@
 
 use std::ops::Index;
 
-use super::Builder;
+use super::adjacency::Adjacency;
 
 // ----------------------------------------------------------------------------
 // Structs
@@ -54,46 +54,27 @@ pub struct Distance {
 impl Distance {
     /// Creates a distance matrix.
     ///
-    /// # Examples
+    /// This method is called by [`Topology::new`][], and is not intended to be
+    /// used on its own, since an adjacency list is needed to create the matrix.
+    /// Computation is expensive, which is why [`Topology`] will defer creation
+    /// via [`OnceCell`], so it's only computed when first accessed.
     ///
-    /// ```
-    /// # use std::error::Error;
-    /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// use zrx_graph::topology::Distance;
-    /// use zrx_graph::Graph;
-    ///
-    /// // Create graph builder and add nodes
-    /// let mut builder = Graph::builder();
-    /// let a = builder.add_node("a");
-    /// let b = builder.add_node("b");
-    /// let c = builder.add_node("c");
-    ///
-    /// // Create edges between nodes
-    /// builder.add_edge(a, b, 0)?;
-    /// builder.add_edge(b, c, 0)?;
-    ///
-    /// // Create distance matrix
-    /// let dist = Distance::new(&builder);
-    /// assert_eq!(dist[a][c], 2);
-    /// # Ok(())
-    /// # }
-    /// ```
+    /// [`OnceCell`]: std::cell::OnceCell
+    /// [`Topology`]: crate::graph::topology::Topology
+    /// [`Topology::new`]: crate::graph::topology::Topology::new
     #[must_use]
-    pub fn new<T, W>(builder: &Builder<T, W>) -> Self
-    where
-        W: Clone,
-    {
-        let nodes = builder.len();
+    pub fn new(adj: &Adjacency) -> Self {
+        let nodes = adj.len();
         let mut data = vec![u8::MAX; nodes * nodes];
 
         // Initialize the distance for all nodes to themselves to 0
-        for index in 0..nodes {
-            data[index * nodes + index] = 0;
-        }
+        for source in adj {
+            data[source * nodes + source] = 0;
 
-        // Initialize the distances for all directed edges to 1
-        for edge in builder.edges() {
-            data[edge.source * nodes + edge.target] = 1;
+            // Initialize the distances for all directed edges to 1
+            for &target in &adj[source] {
+                data[source * nodes + target] = 1;
+            }
         }
 
         // Create distance matrix and compute all-pairs shortest paths
@@ -126,7 +107,7 @@ impl Index<usize> for Distance {
     /// ```
     /// # use std::error::Error;
     /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// use zrx_graph::topology::Distance;
+    /// use zrx_graph::topology::Topology;
     /// use zrx_graph::Graph;
     ///
     /// // Create graph builder and add nodes
@@ -139,8 +120,11 @@ impl Index<usize> for Distance {
     /// builder.add_edge(a, b, 0)?;
     /// builder.add_edge(b, c, 0)?;
     ///
-    /// // Create distance matrix
-    /// let dist = Distance::new(&builder);
+    /// // Create topology
+    /// let topology = Topology::new(&builder);
+    ///
+    /// // Obtain distance matrix
+    /// let dist = topology.distance();
     /// assert_eq!(dist[a][c], 2);
     /// # Ok(())
     /// # }
@@ -157,7 +141,7 @@ impl Index<usize> for Distance {
 // Functions
 // ----------------------------------------------------------------------------
 
-/// Execute Floyd-Warshall algorithm to compute the all-pairs shortest paths,
+/// Executes the Floyd-Warshall algorithm to compute all-pairs shortest paths,
 /// updating the distance matrix in-place. While Floyd-Warshall is not the most
 /// efficient algorithm for sparse graphs, it is simple and effective enough to
 /// implement, and should be sufficient for our case.
