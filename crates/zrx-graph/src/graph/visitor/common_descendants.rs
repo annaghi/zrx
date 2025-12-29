@@ -97,7 +97,7 @@ impl<T> Graph<T> {
         let mut descendants = BTreeSet::default();
         for descendant in self {
             if nodes.iter().all(|&node| {
-                node != descendant && distance[node][descendant] != 255
+                node != descendant && distance[node][descendant] != u8::MAX
             }) {
                 descendants.insert(descendant);
             }
@@ -160,7 +160,7 @@ impl Iterator for CommonDescendants<'_> {
         let mut layer = Vec::new();
         for &descendant in &self.descendants {
             if !self.descendants.iter().any(|&node| {
-                descendant != node && self.distance[node][descendant] != 255
+                descendant != node && self.distance[node][descendant] != u8::MAX
             }) {
                 layer.push(descendant);
             }
