@@ -242,7 +242,7 @@ where
     where
         T: IntoIterator<Item = D>,
     {
-        let mut report = Report::new(());
+        let mut report = Self::new(());
         for diagnostic in iter {
             report.add(diagnostic);
         }

@@ -755,7 +755,7 @@ where
     where
         T: IntoIterator<Item = (K, V)>,
     {
-        let mut store = Indexed::new();
+        let mut store = Self::new();
         for (key, value) in iter {
             store.insert(key, value);
         }

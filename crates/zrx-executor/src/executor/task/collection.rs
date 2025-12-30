@@ -235,7 +235,7 @@ where
     where
         T: IntoIterator<Item = I>,
     {
-        let mut tasks = Tasks::new();
+        let mut tasks = Self::new();
         for task in iter {
             tasks.add(task);
         }
