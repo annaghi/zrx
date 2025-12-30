@@ -182,7 +182,7 @@ impl From<()> for Tasks {
     /// ```
     #[inline]
     fn from((): ()) -> Self {
-        Tasks::default()
+        Self::default()
     }
 }
 
