@@ -38,6 +38,7 @@ mod builder;
 mod convert;
 mod error;
 pub mod format;
+mod macros;
 pub mod matcher;
 pub mod uri;
 
