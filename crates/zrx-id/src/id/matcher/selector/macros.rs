@@ -63,11 +63,11 @@
 /// use zrx_id::{selector, Selector};
 ///
 /// // Create selector from string
-/// let selector: Selector = "zrs:file:::docs:index.md:".parse()?;
+/// let selector: Selector = "zrs:::::**/*.md:".parse()?;
 ///
 /// // Create selector from existing selector
-/// let selector = selector!(selector; location = "README.md")?;
-/// assert_eq!(selector.as_str(), "zrs:file:::docs:README.md:");
+/// let selector = selector!(selector; provider = "file")?;
+/// assert_eq!(selector.as_str(), "zrs:file::::**/*.md:");
 /// # Ok(())
 /// # }
 /// ```
