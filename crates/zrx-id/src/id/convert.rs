@@ -68,11 +68,11 @@ where
     ///
     /// # Errors
     ///
-    /// This method returns [`Error::Path`][] if a component value contains a
-    /// backslash or traversal, or [`Error::Format`][] if the format is invalid.
+    /// This method returns [`Error::Format`][] if the format is invalid, and
+    /// [`Error::Prefix`][] if the prefix is not `zri`.
     ///
     /// [`Error::Format`]: crate::id::Error::Format
-    /// [`Error::Path`]: crate::id::Error::Path
+    /// [`Error::Prefix`]: crate::id::Error::Prefix
     ///
     /// # Examples
     ///
