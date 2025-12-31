@@ -38,6 +38,7 @@ mod builder;
 mod convert;
 mod error;
 pub mod format;
+mod macros;
 pub mod matcher;
 pub mod uri;
 
@@ -306,8 +307,10 @@ impl FromStr for Id {
     ///
     /// # Errors
     ///
-    /// This method returns [`Error::Path`], if a component value contains a
-    /// backslash or traversal, or [`Error::Format`], if the format is invalid.
+    /// This method returns [`Error::Component`] if the `provider`, `context`
+    /// or `location` components are not set, and [`Error::Prefix`] if it's not
+    /// set to `zri`. Additionally, lower-level format errors are returned as
+    /// part of [`Error::Format`].
     ///
     /// # Examples
     ///

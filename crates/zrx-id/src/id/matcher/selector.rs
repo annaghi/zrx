@@ -37,6 +37,7 @@ use super::error::{Error, Result};
 
 mod builder;
 mod convert;
+mod macros;
 
 pub use builder::Builder;
 pub use convert::ToSelector;
@@ -232,8 +233,8 @@ impl FromStr for Selector {
     ///
     /// # Errors
     ///
-    /// This method returns [`Error::Path`], if a component value contains a
-    /// backslash, or [`Error::Format`], if the format is invalid.
+    /// This method returns [`Error::Prefix`] if the prefix is not `zrs`. Also,
+    /// lower-level format errors are returned as part of [`Error::Format`].
     ///
     /// # Examples
     ///

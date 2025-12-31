@@ -315,8 +315,9 @@ impl<'a> Builder<'a> {
     ///
     /// # Errors
     ///
-    /// This method returns [`Error::Path`], if a component value contains a
-    /// backslash or traversal, or [`Error::Format`], if the format is invalid.
+    /// This method returns [`Error::Component`] if the `provider`, `context`
+    /// or `location` components are not set. Additionally, lower-level format
+    /// errors are returned as part of [`Error::Format`].
     ///
     /// # Examples
     ///

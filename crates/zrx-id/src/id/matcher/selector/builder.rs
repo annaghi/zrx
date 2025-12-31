@@ -316,11 +316,9 @@ impl<'a> Builder<'a> {
     ///
     /// # Errors
     ///
-    /// This method returns [`Error::Path`][] if a component value contains a
-    /// backslash or traversal, or [`Error::Format`][] if the format is invalid.
+    /// This method returns [`Error::Format`][] if the format is invalid.
     ///
     /// [`Error::Format`]: crate::id::matcher::Error::Format
-    /// [`Error::Path`]: crate::id::matcher::Error::Path
     ///
     /// # Examples
     ///
