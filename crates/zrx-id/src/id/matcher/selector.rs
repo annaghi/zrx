@@ -37,6 +37,7 @@ use super::error::{Error, Result};
 
 mod builder;
 mod convert;
+mod macros;
 
 pub use builder::Builder;
 pub use convert::ToSelector;
