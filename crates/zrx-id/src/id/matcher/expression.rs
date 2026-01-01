@@ -25,6 +25,8 @@
 
 //! Expression.
 
+use super::{Matcher, Result};
+
 mod builder;
 pub mod operand;
 mod terms;
@@ -47,4 +49,43 @@ pub struct Expression {
     operator: Operator,
     /// Expression operands.
     operands: Vec<Operand>,
+}
+
+// ----------------------------------------------------------------------------
+// Implementations
+// ----------------------------------------------------------------------------
+
+impl Expression {
+    /// Compiles the expression into a matcher.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if compiling the expression fails.
+    pub fn compile(self) -> Result<Matcher> {
+        let mut matcher = Matcher::builder();
+
+        // Extract all terms from expression and create matcher.
+        let mut stack = Vec::from([self]);
+        while let Some(expr) = stack.pop() {
+            if expr.operator != Operator::Not {
+                continue;
+            }
+            for operand in expr.operands.into_iter().rev() {
+                match operand {
+                    Operand::Expression(expr) => stack.push(expr),
+                    Operand::Term(term) => match term {
+                        Term::Id(id) => {
+                            matcher.add(&id)?;
+                        }
+                        Term::Selector(selector) => {
+                            matcher.add(&selector)?;
+                        }
+                    },
+                }
+            }
+        }
+
+        // Build and return matcher
+        matcher.build()
+    }
 }
