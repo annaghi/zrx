@@ -307,9 +307,9 @@ impl FromStr for Id {
     ///
     /// # Errors
     ///
-    /// This method returns [`Error::Component`] if the `provider`, `context`
-    /// or `location` components are not set, and [`Error::Prefix`] if it's not
-    /// set to `zri`. Additionally, lower-level format errors are returned as
+    /// This method returns [`Error::Prefix`] if the prefix isn't `zri`, and
+    /// [`Error::Component`] if any of the `provider`, `context` or `location`
+    /// components are not set. Also, low-level format errors are returned as
     /// part of [`Error::Format`].
     ///
     /// # Examples

@@ -23,32 +23,47 @@
 
 // ----------------------------------------------------------------------------
 
-//! Matcher error.
+//! Operand conversions.
 
-use std::result;
-use thiserror::Error;
-
-use crate::id;
+use super::error::Result;
+use super::Operand;
 
 // ----------------------------------------------------------------------------
-// Enums
+// Traits
 // ----------------------------------------------------------------------------
 
-/// Matcher error.
-#[derive(Debug, Error)]
-pub enum Error {
-    /// Globset error.
-    #[error(transparent)]
-    Glob(#[from] globset::Error),
-
-    /// Identifier error.
-    #[error(transparent)]
-    Id(#[from] id::Error),
+/// Attempt conversion into [`Operand`].
+pub trait TryIntoOperand {
+    /// Attempts to convert into an operand.
+    ///
+    /// # Errors
+    ///
+    /// In case conversion fails, an error should be returned.
+    fn try_into_operand(self) -> Result<Operand>;
 }
 
 // ----------------------------------------------------------------------------
-// Type aliases
+// Trait implementations
 // ----------------------------------------------------------------------------
 
-/// Matcher result.
-pub type Result<T = ()> = result::Result<T, Error>;
+impl<T> TryIntoOperand for T
+where
+    T: Into<Operand>,
+{
+    /// Creates an operand from a value `T` and wraps it in a result.
+    #[inline]
+    fn try_into_operand(self) -> Result<Operand> {
+        Ok(self.into())
+    }
+}
+
+impl<T> TryIntoOperand for Result<T>
+where
+    T: Into<Operand>,
+{
+    /// Creates an operand from a value `T` in a result.
+    #[inline]
+    fn try_into_operand(self) -> Result<Operand> {
+        self.map(Into::into)
+    }
+}

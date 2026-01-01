@@ -23,32 +23,75 @@
 
 // ----------------------------------------------------------------------------
 
-//! Matcher error.
+//! Operand.
 
-use std::result;
-use thiserror::Error;
+use std::fmt;
 
-use crate::id;
+use super::Expression;
+
+mod convert;
+mod error;
+mod term;
+
+pub use convert::TryIntoOperand;
+pub use error::{Error, Result};
+pub use term::Term;
 
 // ----------------------------------------------------------------------------
 // Enums
 // ----------------------------------------------------------------------------
 
-/// Matcher error.
-#[derive(Debug, Error)]
-pub enum Error {
-    /// Globset error.
-    #[error(transparent)]
-    Glob(#[from] globset::Error),
+/// Operator.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Operator {
+    /// Logical `AND`.
+    Any,
+    /// Logical `OR`.
+    All,
+    /// Logical `NOT`.
+    Not,
+}
 
-    /// Identifier error.
-    #[error(transparent)]
-    Id(#[from] id::Error),
+/// Operand.
+#[derive(Clone)]
+pub enum Operand {
+    /// Expression.
+    Expression(Expression),
+    /// Term.
+    Term(Term),
 }
 
 // ----------------------------------------------------------------------------
-// Type aliases
+// Trait implementations
 // ----------------------------------------------------------------------------
 
-/// Matcher result.
-pub type Result<T = ()> = result::Result<T, Error>;
+impl From<Expression> for Operand {
+    /// Creates an operand from the given expression.
+    #[inline]
+    fn from(expr: Expression) -> Self {
+        Self::Expression(expr)
+    }
+}
+
+impl<T> From<T> for Operand
+where
+    T: Into<Term>,
+{
+    /// Creates an operand from the given term.
+    #[inline]
+    fn from(term: T) -> Self {
+        Self::Term(term.into())
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+impl fmt::Debug for Operand {
+    /// Formats the operand for debugging.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Expression(expr) => expr.fmt(f),
+            Self::Term(term) => term.fmt(f),
+        }
+    }
+}

@@ -23,32 +23,53 @@
 
 // ----------------------------------------------------------------------------
 
-//! Matcher error.
+//! Iterator over terms.
 
-use std::result;
-use thiserror::Error;
-
-use crate::id;
+use super::operand::Operand;
+use super::{Expression, Term};
 
 // ----------------------------------------------------------------------------
-// Enums
+// Structs
 // ----------------------------------------------------------------------------
 
-/// Matcher error.
-#[derive(Debug, Error)]
-pub enum Error {
-    /// Globset error.
-    #[error(transparent)]
-    Glob(#[from] globset::Error),
-
-    /// Identifier error.
-    #[error(transparent)]
-    Id(#[from] id::Error),
+/// Iterator over terms.
+pub struct Terms<'a> {
+    /// Stack for depth-first search.
+    stack: Vec<&'a Expression>,
 }
 
 // ----------------------------------------------------------------------------
-// Type aliases
+// Implementations
 // ----------------------------------------------------------------------------
 
-/// Matcher result.
-pub type Result<T = ()> = result::Result<T, Error>;
+impl Expression {
+    /// Creates an iterator over the terms of an expression.
+    #[inline]
+    #[must_use]
+    pub fn terms(&self) -> Terms<'_> {
+        Terms { stack: Vec::from([self]) }
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Trait implementations
+// ----------------------------------------------------------------------------
+
+impl<'a> Iterator for Terms<'a> {
+    type Item = &'a Term;
+
+    /// Returns the next term.
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(expr) = self.stack.pop() {
+            for operand in expr.operands.iter().rev() {
+                match operand {
+                    Operand::Expression(expr) => self.stack.push(expr),
+                    Operand::Term(term) => return Some(term),
+                }
+            }
+        }
+
+        // No more terms to return
+        None
+    }
+}

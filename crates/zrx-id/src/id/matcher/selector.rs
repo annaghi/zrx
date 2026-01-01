@@ -32,8 +32,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use crate::id::format::Format;
-
-use super::error::{Error, Result};
+use crate::id::{Error, Result};
 
 mod builder;
 mod convert;
@@ -233,8 +232,8 @@ impl FromStr for Selector {
     ///
     /// # Errors
     ///
-    /// This method returns [`Error::Prefix`] if the prefix is not `zrs`. Also,
-    /// lower-level format errors are returned as part of [`Error::Format`].
+    /// This method returns [`Error::Prefix`] if the prefix isn't `zrs`. Also,
+    /// low-level format errors are returned as part of [`Error::Format`].
     ///
     /// # Examples
     ///

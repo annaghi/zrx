@@ -27,8 +27,7 @@
 
 use std::borrow::Cow;
 
-use crate::id::matcher::Result;
-use crate::id::Id;
+use crate::id::{Id, Result};
 
 use super::builder::Builder;
 use super::Selector;
@@ -100,8 +99,8 @@ where
     ///
     /// # Errors
     ///
-    /// This method returns [`Error::Format`][] if the format is invalid, and
-    /// [`Error::Prefix`][] if the prefix is not `zrs`.
+    /// This method returns [`Error::Prefix`][] if the prefix isn't `zrs`. Also,
+    /// low-level format errors are returned as part of [`Error::Format`][].
     ///
     /// [`Error::Format`]: crate::id::Error::Format
     /// [`Error::Prefix`]: crate::id::Error::Prefix

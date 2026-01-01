@@ -23,32 +23,54 @@
 
 // ----------------------------------------------------------------------------
 
-//! Matcher error.
+//! Term.
 
-use std::result;
-use thiserror::Error;
+use std::fmt;
 
-use crate::id;
+use crate::id::matcher::Selector;
+use crate::id::Id;
 
 // ----------------------------------------------------------------------------
 // Enums
 // ----------------------------------------------------------------------------
 
-/// Matcher error.
-#[derive(Debug, Error)]
-pub enum Error {
-    /// Globset error.
-    #[error(transparent)]
-    Glob(#[from] globset::Error),
-
-    /// Identifier error.
-    #[error(transparent)]
-    Id(#[from] id::Error),
+/// Term.
+#[derive(Clone, PartialEq, Eq)]
+pub enum Term {
+    /// Identifier.
+    Id(Id),
+    /// Selector.
+    Selector(Selector),
 }
 
 // ----------------------------------------------------------------------------
-// Type aliases
+// Trait implementations
 // ----------------------------------------------------------------------------
 
-/// Matcher result.
-pub type Result<T = ()> = result::Result<T, Error>;
+impl From<Id> for Term {
+    /// Creates a term from the given identifier.
+    #[inline]
+    fn from(id: Id) -> Self {
+        Self::Id(id)
+    }
+}
+
+impl From<Selector> for Term {
+    /// Creates a term from the given selector.
+    #[inline]
+    fn from(selector: Selector) -> Self {
+        Self::Selector(selector)
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+impl fmt::Debug for Term {
+    /// Formats the term for debugging.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Id(id) => id.fmt(f),
+            Self::Selector(selector) => selector.fmt(f),
+        }
+    }
+}

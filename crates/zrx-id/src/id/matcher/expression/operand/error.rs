@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Matcher error.
+//! Operand error.
 
 use std::result;
 use thiserror::Error;
@@ -34,13 +34,9 @@ use crate::id;
 // Enums
 // ----------------------------------------------------------------------------
 
-/// Matcher error.
+/// Operand error.
 #[derive(Debug, Error)]
 pub enum Error {
-    /// Globset error.
-    #[error(transparent)]
-    Glob(#[from] globset::Error),
-
     /// Identifier error.
     #[error(transparent)]
     Id(#[from] id::Error),
@@ -50,5 +46,5 @@ pub enum Error {
 // Type aliases
 // ----------------------------------------------------------------------------
 
-/// Matcher result.
+/// Operand result.
 pub type Result<T = ()> = result::Result<T, Error>;

@@ -23,71 +23,69 @@
 
 // ----------------------------------------------------------------------------
 
-//! Identifier conversions.
+//! Expression.
 
-use std::borrow::Cow;
+use super::{Matcher, Result};
 
-use super::error::Result;
-use super::Id;
+mod builder;
+pub mod operand;
+mod terms;
+
+pub use builder::Builder;
+pub use operand::{Operand, Operator, Term};
+pub use terms::Terms;
 
 // ----------------------------------------------------------------------------
-// Traits
+// Structs
 // ----------------------------------------------------------------------------
 
-/// Conversion to [`Id`].
+/// Expression.
 ///
-/// This trait allows to convert an arbitrary value into an identifier, using a
-/// [`Cow`] smart pointer to avoid unnecessary cloning, e.g. for references.
-pub trait ToId {
-    /// Converts to an identifier.
-    #[allow(clippy::missing_errors_doc)]
-    fn to_id(&self) -> Result<Cow<'_, Id>>;
+/// This data type allows modeling arbitrarily nested expressions, which can be
+/// combined using the logical `AND`, `OR`, and `NOT` operators.
+#[derive(Clone, Debug)]
+pub struct Expression {
+    /// Expression operator.
+    operator: Operator,
+    /// Expression operands.
+    operands: Vec<Operand>,
 }
 
 // ----------------------------------------------------------------------------
-// Trait implementations
+// Implementations
 // ----------------------------------------------------------------------------
 
-impl ToId for &Id {
-    /// Creates an identifier from a reference.
-    #[inline]
-    fn to_id(&self) -> Result<Cow<'_, Id>> {
-        Ok(Cow::Borrowed(self))
-    }
-}
-
-// ----------------------------------------------------------------------------
-// Blanket implementations
-// ----------------------------------------------------------------------------
-
-impl<T> ToId for T
-where
-    T: AsRef<str>,
-{
-    /// Creates an identifier from a string.
+impl Expression {
+    /// Compiles the expression into a matcher.
     ///
     /// # Errors
     ///
-    /// This method returns [`Error::Prefix`][] if the prefix isn't `zri`. Also,
-    /// low-level format errors are returned as part of [`Error::Format`][].
-    ///
-    /// [`Error::Format`]: crate::id::Error::Format
-    /// [`Error::Prefix`]: crate::id::Error::Prefix
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use std::error::Error;
-    /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// use zrx_id::{Id, ToId};
-    ///
-    /// // Create identifier from string
-    /// let id = "zri:file:::docs:index.md:".to_id()?;
-    /// # Ok(())
-    /// # }
-    /// ```
-    #[inline]
-    fn to_id(&self) -> Result<Cow<'_, Id>> {
-        self.as_ref().parse().map(Cow::Owned)
+    /// This function will return an error if compiling the expression fails.
+    pub fn compile(self) -> Result<Matcher> {
+        let mut matcher = Matcher::builder();
+
+        // Extract all terms from expression and create matcher.
+        let mut stack = Vec::from([self]);
+        while let Some(expr) = stack.pop() {
+            if expr.operator != Operator::Not {
+                continue;
+            }
+            for operand in expr.operands.into_iter().rev() {
+                match operand {
+                    Operand::Expression(expr) => stack.push(expr),
+                    Operand::Term(term) => match term {
+                        Term::Id(id) => {
+                            matcher.add(&id)?;
+                        }
+                        Term::Selector(selector) => {
+                            matcher.add(&selector)?;
+                        }
+                    },
+                }
+            }
+        }
+
+        // Build and return matcher
+        matcher.build()
     }
 }

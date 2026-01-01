@@ -30,7 +30,7 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::Arc;
 
 use crate::id::format::{self, Format};
-use crate::id::matcher::Result;
+use crate::id::Result;
 
 use super::Selector;
 
@@ -318,7 +318,7 @@ impl<'a> Builder<'a> {
     ///
     /// This method returns [`Error::Format`][] if the format is invalid.
     ///
-    /// [`Error::Format`]: crate::id::matcher::Error::Format
+    /// [`Error::Format`]: crate::id::Error::Format
     ///
     /// # Examples
     ///

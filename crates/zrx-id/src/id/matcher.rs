@@ -32,11 +32,12 @@ use super::ToId;
 
 mod builder;
 mod error;
+pub mod expression;
 pub mod selector;
 
 pub use builder::Builder;
 pub use error::{Error, Result};
-pub use selector::{Selector, ToSelector};
+use selector::Selector;
 
 // ----------------------------------------------------------------------------
 // Structs
@@ -250,8 +251,8 @@ impl FromStr for Matcher {
     ///
     /// # Errors
     ///
-    /// This method returns [`Error::Format`] if the format is invalid, and
-    /// [`Error::Prefix`] if the prefix is not `zrs`.
+    /// This method returns [`Error::Id`] if the given string can't be parsed
+    /// into a valid selector, from which the matcher is then constructed.
     ///
     /// # Examples
     ///
