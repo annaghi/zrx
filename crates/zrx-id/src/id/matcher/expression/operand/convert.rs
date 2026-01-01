@@ -23,13 +23,47 @@
 
 // ----------------------------------------------------------------------------
 
-//! Identifier abstractions and utilities.
+//! Operand conversions.
 
-mod id;
+use super::error::Result;
+use super::Operand;
 
-pub use id::format;
-pub use id::matcher::expression::Expression;
-pub use id::matcher::selector::{Selector, ToSelector};
-pub use id::matcher::{self, Matcher};
-pub use id::uri;
-pub use id::{Builder, Error, Id, Result, ToId};
+// ----------------------------------------------------------------------------
+// Traits
+// ----------------------------------------------------------------------------
+
+/// Attempt conversion into [`Operand`].
+pub trait TryIntoOperand {
+    /// Attempts to convert into an operand.
+    ///
+    /// # Errors
+    ///
+    /// In case conversion fails, an error should be returned.
+    fn try_into_operand(self) -> Result<Operand>;
+}
+
+// ----------------------------------------------------------------------------
+// Trait implementations
+// ----------------------------------------------------------------------------
+
+impl<T> TryIntoOperand for T
+where
+    T: Into<Operand>,
+{
+    /// Creates an operand from a value `T` and wraps it in a result.
+    #[inline]
+    fn try_into_operand(self) -> Result<Operand> {
+        Ok(self.into())
+    }
+}
+
+impl<T> TryIntoOperand for Result<T>
+where
+    T: Into<Operand>,
+{
+    /// Creates an operand from a value `T` in a result.
+    #[inline]
+    fn try_into_operand(self) -> Result<Operand> {
+        self.map(Into::into)
+    }
+}

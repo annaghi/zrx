@@ -23,13 +23,28 @@
 
 // ----------------------------------------------------------------------------
 
-//! Identifier abstractions and utilities.
+//! Expression.
 
-mod id;
+mod builder;
+pub mod operand;
+mod terms;
 
-pub use id::format;
-pub use id::matcher::expression::Expression;
-pub use id::matcher::selector::{Selector, ToSelector};
-pub use id::matcher::{self, Matcher};
-pub use id::uri;
-pub use id::{Builder, Error, Id, Result, ToId};
+pub use builder::Builder;
+pub use operand::{Operand, Operator, Term};
+pub use terms::Terms;
+
+// ----------------------------------------------------------------------------
+// Structs
+// ----------------------------------------------------------------------------
+
+/// Expression.
+///
+/// This data type allows modeling arbitrarily nested expressions, which can be
+/// combined using the logical `AND`, `OR`, and `NOT` operators.
+#[derive(Clone, Debug)]
+pub struct Expression {
+    /// Expression operator.
+    operator: Operator,
+    /// Expression operands.
+    operands: Vec<Operand>,
+}

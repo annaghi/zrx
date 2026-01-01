@@ -23,13 +23,28 @@
 
 // ----------------------------------------------------------------------------
 
-//! Identifier abstractions and utilities.
+//! Operand error.
 
-mod id;
+use std::result;
+use thiserror::Error;
 
-pub use id::format;
-pub use id::matcher::expression::Expression;
-pub use id::matcher::selector::{Selector, ToSelector};
-pub use id::matcher::{self, Matcher};
-pub use id::uri;
-pub use id::{Builder, Error, Id, Result, ToId};
+use crate::id;
+
+// ----------------------------------------------------------------------------
+// Enums
+// ----------------------------------------------------------------------------
+
+/// Operand error.
+#[derive(Debug, Error)]
+pub enum Error {
+    /// Identifier error.
+    #[error(transparent)]
+    Id(#[from] id::Error),
+}
+
+// ----------------------------------------------------------------------------
+// Type aliases
+// ----------------------------------------------------------------------------
+
+/// Operand result.
+pub type Result<T = ()> = result::Result<T, Error>;

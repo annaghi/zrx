@@ -23,13 +23,54 @@
 
 // ----------------------------------------------------------------------------
 
-//! Identifier abstractions and utilities.
+//! Term.
 
-mod id;
+use std::fmt;
 
-pub use id::format;
-pub use id::matcher::expression::Expression;
-pub use id::matcher::selector::{Selector, ToSelector};
-pub use id::matcher::{self, Matcher};
-pub use id::uri;
-pub use id::{Builder, Error, Id, Result, ToId};
+use crate::id::matcher::Selector;
+use crate::id::Id;
+
+// ----------------------------------------------------------------------------
+// Enums
+// ----------------------------------------------------------------------------
+
+/// Term.
+#[derive(Clone, PartialEq, Eq)]
+pub enum Term {
+    /// Identifier.
+    Id(Id),
+    /// Selector.
+    Selector(Selector),
+}
+
+// ----------------------------------------------------------------------------
+// Trait implementations
+// ----------------------------------------------------------------------------
+
+impl From<Id> for Term {
+    /// Creates a term from the given identifier.
+    #[inline]
+    fn from(id: Id) -> Self {
+        Self::Id(id)
+    }
+}
+
+impl From<Selector> for Term {
+    /// Creates a term from the given selector.
+    #[inline]
+    fn from(selector: Selector) -> Self {
+        Self::Selector(selector)
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+impl fmt::Debug for Term {
+    /// Formats the term for debugging.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Id(id) => id.fmt(f),
+            Self::Selector(selector) => selector.fmt(f),
+        }
+    }
+}

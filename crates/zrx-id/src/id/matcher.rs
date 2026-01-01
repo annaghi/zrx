@@ -32,11 +32,12 @@ use super::ToId;
 
 mod builder;
 mod error;
+pub mod expression;
 pub mod selector;
 
 pub use builder::Builder;
 pub use error::{Error, Result};
-pub use selector::{Selector, ToSelector};
+use selector::Selector;
 
 // ----------------------------------------------------------------------------
 // Structs
