@@ -32,8 +32,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use crate::id::format::Format;
-
-use super::error::{Error, Result};
+use crate::id::{Error, Result};
 
 mod builder;
 mod convert;

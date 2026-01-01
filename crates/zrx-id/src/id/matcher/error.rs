@@ -28,7 +28,7 @@
 use std::result;
 use thiserror::Error;
 
-use crate::id::{self, format};
+use crate::id;
 
 // ----------------------------------------------------------------------------
 // Enums
@@ -41,17 +41,9 @@ pub enum Error {
     #[error(transparent)]
     Glob(#[from] globset::Error),
 
-    /// Format error.
-    #[error(transparent)]
-    Format(#[from] format::Error),
-
     /// Identifier error.
     #[error(transparent)]
     Id(#[from] id::Error),
-
-    /// Invalid prefix.
-    #[error("invalid prefix")]
-    Prefix,
 }
 
 // ----------------------------------------------------------------------------

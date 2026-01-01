@@ -30,7 +30,7 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::Arc;
 
 use crate::id::format::{self, Format};
-use crate::id::matcher::Result;
+use crate::id::Result;
 
 use super::Selector;
 

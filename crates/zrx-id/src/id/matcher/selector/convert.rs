@@ -27,8 +27,7 @@
 
 use std::borrow::Cow;
 
-use crate::id::matcher::Result;
-use crate::id::Id;
+use crate::id::{Id, Result};
 
 use super::builder::Builder;
 use super::Selector;
