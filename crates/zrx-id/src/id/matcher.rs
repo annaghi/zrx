@@ -251,8 +251,8 @@ impl FromStr for Matcher {
     ///
     /// # Errors
     ///
-    /// This method returns [`Error::Format`] if the format is invalid, and
-    /// [`Error::Prefix`] if the prefix is not `zrs`.
+    /// This method returns [`Error::Id`] if the given string can't be parsed
+    /// into a valid selector, from which the matcher is then constructed.
     ///
     /// # Examples
     ///
