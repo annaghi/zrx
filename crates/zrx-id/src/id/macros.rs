@@ -77,7 +77,7 @@ macro_rules! id {
     ($from:expr; $($key:ident = $value:expr),* $(,)?) => {{
         let mut builder = $from.to_builder();
         $(
-            builder = id!(@set builder, $key, $value);
+            builder = $crate::id!(@set builder, $key, $value);
         )*
         builder.build()
     }};
@@ -86,7 +86,7 @@ macro_rules! id {
     ($($key:ident = $value:expr),* $(,)?) => {{
         let mut builder = $crate::Id::builder();
         $(
-            builder = id!(@set builder, $key, $value);
+            builder = $crate::id!(@set builder, $key, $value);
         )*
         builder.build()
     }};
