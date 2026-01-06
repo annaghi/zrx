@@ -1,0 +1,253 @@
+// Copyright (c) 2025-2026 Zensical and contributors
+
+// SPDX-License-Identifier: MIT
+// All contributions are certified under the DCO
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to
+// deal in the Software without restriction, including without limitation the
+// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+// sell copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
+
+// ----------------------------------------------------------------------------
+
+//! Match set.
+
+mod iter;
+
+// ----------------------------------------------------------------------------
+// Structs
+// ----------------------------------------------------------------------------
+
+/// Match set.
+///
+/// This match set implementation is based on a minimal bitset implementation,
+/// that allows to efficiently manage and work with match sets and filters. It
+/// mustn't be considered a complete implementation of general purpose bitsets,
+/// but only provides the methods we need for efficient matching.
+///
+/// Using a focused implementation allows us to optimize for our specific use
+/// case, and avoids yet another dependency to manage.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Matches {
+    /// Blocks of bits.
+    data: Vec<u64>,
+}
+
+// ----------------------------------------------------------------------------
+// Implementations
+// ----------------------------------------------------------------------------
+
+impl Matches {
+    /// Creates a match set.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_id::matcher::Matches;
+    ///
+    /// // Create match set
+    /// let matches = Matches::new();
+    /// ```
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Creates a match set with the given capacity.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_id::matcher::Matches;
+    ///
+    /// // Create match set with capacity
+    /// let matches = Matches::with_capacity(128);
+    /// ```
+    #[must_use]
+    pub fn with_capacity(capacity: usize) -> Self {
+        // Note that the number of bits is rounded up to the next multiple of
+        // 64, so that the bitset can be represented as a vector of 64-bit
+        // blocks. It also means that the bitset can store at least the given
+        // number of bits, but possibly more.
+        let blocks = capacity.div_ceil(64);
+        Self { data: vec![0; blocks] }
+    }
+
+    /// Returns whether the match set contains the given match.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the index is out of bounds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_id::matcher::Matches;
+    ///
+    /// // Create match set
+    /// let matches = Matches::from_iter([1]);
+    /// assert_eq!(matches.contains(0), false);
+    /// assert_eq!(matches.contains(1), true);
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn contains(&self, index: usize) -> bool {
+        (self.data[index >> 6] & 1 << (index & 63)) != 0
+    }
+
+    /// Inserts a match into the match set.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the index is out of bounds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_id::matcher::Matches;
+    ///
+    /// // Create match set
+    /// let mut matches = Matches::new();
+    ///
+    /// // Insert match
+    /// matches.insert(0);
+    /// ```
+    #[inline]
+    pub fn insert(&mut self, index: usize) {
+        let block = self.resolve(index);
+        self.data[block] |= 1 << (index & 63);
+    }
+
+    /// Intersects the match set with the given one.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_id::matcher::Matches;
+    ///
+    /// // Create two match set
+    /// let mut a = Matches::from_iter([0, 1]);
+    /// let mut b = Matches::from_iter([1, 2]);
+    ///
+    /// // Intersect match sets
+    /// a.intersect(&b);
+    /// assert_eq!(a, Matches::from_iter([1]));
+    /// ```
+    pub fn intersect(&mut self, other: &Self) {
+        for (a, b) in self.data.iter_mut().zip(&other.data) {
+            *a &= *b;
+        }
+    }
+
+    /// Returns whether the match set is a subset of the given one.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_id::matcher::Matches;
+    ///
+    /// // Create two match set
+    /// let mut a = Matches::from_iter([0, 1]);
+    /// let mut b = Matches::from_iter([0, 1, 2]);
+    ///
+    /// // Ensure match set is subset
+    /// assert!(a.is_subset(&b));
+    /// ```
+    #[must_use]
+    pub fn is_subset(&self, other: &Self) -> bool {
+        for (a, b) in self.data.iter().zip(&other.data) {
+            if (*a & *b) != *a {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// Resolve the block for the given match.
+    ///
+    /// This method ensures that the match set has enough blocks to accommodate
+    /// the given match, resizing the underlying vector if necessary.
+    fn resolve(&mut self, index: usize) -> usize {
+        let block = index >> 6;
+        if block >= self.data.len() {
+            let blocks = block + 1;
+            self.data.resize(blocks, 0);
+        }
+        block
+    }
+}
+
+#[allow(clippy::must_use_candidate)]
+impl Matches {
+    /// Returns the number of matches.
+    #[inline]
+    pub fn len(&self) -> usize {
+        let iter = self.data.iter();
+        iter.map(|block| block.count_ones() as usize).sum()
+    }
+
+    /// Returns whether there are any matches.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.data.iter().all(|&block| block == 0)
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Trait implementations
+// ----------------------------------------------------------------------------
+
+impl FromIterator<usize> for Matches {
+    /// Creates a match set from an iterator.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_id::matcher::Matches;
+    ///
+    /// // Create match set from iterator
+    /// let matches = Matches::from_iter([0, 1]);
+    /// ```
+    #[inline]
+    fn from_iter<T>(iter: T) -> Self
+    where
+        T: IntoIterator<Item = usize>,
+    {
+        let mut matches = Matches::new();
+        for index in iter {
+            matches.insert(index);
+        }
+        matches
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+impl Default for Matches {
+    /// Creates a match set.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_id::matcher::Matches;
+    ///
+    /// // Create match set
+    /// let matches = Matches::default();
+    /// ```
+    fn default() -> Self {
+        Self::with_capacity(1)
+    }
+}

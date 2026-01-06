@@ -36,8 +36,8 @@
 /// also allows to create a new selector based on an existing one by passing it
 /// as the first argument.
 ///
-/// [`Selector`]: crate::id::matcher::Selector
-/// [`Selector::builder`]: crate::id::matcher::Selector::builder
+/// [`Selector`]: crate::id::matcher::selector::Selector
+/// [`Selector::builder`]: crate::id::matcher::selector::Selector::builder
 ///
 /// # Examples
 ///
@@ -77,7 +77,7 @@ macro_rules! selector {
     ($from:expr; $($key:ident = $value:expr),* $(,)?) => {{
         let mut builder = $from.to_builder();
         $(
-            builder = selector!(@set builder, $key, $value);
+            builder = $crate::selector!(@set builder, $key, $value);
         )*
         builder.build()
     }};
@@ -86,7 +86,7 @@ macro_rules! selector {
     ($($key:ident = $value:expr),* $(,)?) => {{
         let mut builder = $crate::Selector::builder();
         $(
-            builder = selector!(@set builder, $key, $value);
+            builder = $crate::selector!(@set builder, $key, $value);
         )*
         builder.build()
     }};

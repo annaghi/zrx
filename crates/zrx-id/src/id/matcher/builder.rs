@@ -25,10 +25,11 @@
 
 //! Matcher builder.
 
-use globset::{Glob, GlobSetBuilder};
+use globset::{Glob, GlobBuilder};
 
+use super::component;
 use super::error::Result;
-use super::selector::ToSelector;
+use super::selector::TryIntoSelector;
 use super::Matcher;
 
 // ----------------------------------------------------------------------------
@@ -36,20 +37,20 @@ use super::Matcher;
 // ----------------------------------------------------------------------------
 
 /// Matcher builder.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Builder {
-    /// Glob set builder for provider.
-    provider: GlobSetBuilder,
-    /// Glob set builder for resource.
-    resource: GlobSetBuilder,
-    /// Glob set builder for variant.
-    variant: GlobSetBuilder,
-    /// Glob set builder for context.
-    context: GlobSetBuilder,
-    /// Glob set builder for location.
-    location: GlobSetBuilder,
-    /// Glob set builder for fragment.
-    fragment: GlobSetBuilder,
+    /// Component builder for provider.
+    provider: component::Builder,
+    /// Component builder for resource.
+    resource: component::Builder,
+    /// Component builder for variant.
+    variant: component::Builder,
+    /// Component builder for context.
+    context: component::Builder,
+    /// Component builder for location.
+    location: component::Builder,
+    /// Component builder for fragment.
+    fragment: component::Builder,
 }
 
 // ----------------------------------------------------------------------------
@@ -70,14 +71,7 @@ impl Matcher {
     #[inline]
     #[must_use]
     pub fn builder() -> Builder {
-        Builder {
-            provider: GlobSetBuilder::new(),
-            resource: GlobSetBuilder::new(),
-            variant: GlobSetBuilder::new(),
-            context: GlobSetBuilder::new(),
-            location: GlobSetBuilder::new(),
-            fragment: GlobSetBuilder::new(),
-        }
+        Builder::default()
     }
 }
 
@@ -87,11 +81,10 @@ impl Builder {
     /// Extends the matcher with the given selector.
     ///
     /// This method adds a [`Selector`][] to the matcher, creating a [`Glob`]
-    /// from each component, adding it to the corresponding [`GlobSetBuilder`].
-    /// If a component is empty, it is coerced to `**`, as the counts of all
-    /// components must match for correct intersection in [`Matcher::matches`].
+    /// for each component and adding it to a [`GlobSetBuilder`][].
     ///
-    /// [`Selector`]: crate::id::matcher::Selector
+    /// [`GlobSetBuilder`]: globset::GlobSetBuilder
+    /// [`Selector`]: crate::id::matcher::selector::Selector
     ///
     /// # Errors
     ///
@@ -113,7 +106,7 @@ impl Builder {
     #[inline]
     pub fn with<S>(mut self, selector: S) -> Result<Self>
     where
-        S: ToSelector,
+        S: TryIntoSelector,
     {
         self.add(selector)?;
         Ok(self)
@@ -147,17 +140,17 @@ impl Builder {
     #[allow(clippy::needless_pass_by_value)]
     pub fn add<S>(&mut self, selector: S) -> Result<&mut Self>
     where
-        S: ToSelector,
+        S: TryIntoSelector,
     {
-        let selector = selector.to_selector()?;
+        let selector = selector.try_into_selector()?;
 
         // Compile and add each component of the given selector
-        self.provider.add(parse(selector.provider().as_deref())?);
-        self.resource.add(parse(selector.resource().as_deref())?);
-        self.variant.add(parse(selector.variant().as_deref())?);
-        self.context.add(parse(selector.context().as_deref())?);
-        self.location.add(parse(selector.location().as_deref())?);
-        self.fragment.add(parse(selector.fragment().as_deref())?);
+        self.provider.add(compile(selector.provider().as_deref())?);
+        self.resource.add(compile(selector.resource().as_deref())?);
+        self.variant.add(compile(selector.variant().as_deref())?);
+        self.context.add(compile(selector.context().as_deref())?);
+        self.location.add(compile(selector.location().as_deref())?);
+        self.fragment.add(compile(selector.fragment().as_deref())?);
 
         // Return builder for chaining
         Ok(self)
@@ -201,36 +194,17 @@ impl Builder {
 }
 
 // ----------------------------------------------------------------------------
-// Trait implementations
-// ----------------------------------------------------------------------------
-
-impl Default for Builder {
-    /// Creates a matcher builder.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_id::matcher::Builder;
-    ///
-    /// // Create matcher builder
-    /// let mut builder = Builder::default();
-    /// ```
-    #[inline]
-    fn default() -> Self {
-        Matcher::builder()
-    }
-}
-
-// ----------------------------------------------------------------------------
 // Functions
 // ----------------------------------------------------------------------------
 
-/// Parses a component into a glob.
-///
-/// Note that wildcards are implicit, which means that empty components are
-/// coerced to `**` to provide an ergonomic API for creating selectors. We must
-/// create a selector for each component, or the component count of selectors
-/// will not be coherent, which is essential for correct matching.
-fn parse(component: Option<&str>) -> Result<Glob> {
-    Ok(Glob::new(component.unwrap_or("**"))?)
+/// Compiles a component for addition to the matcher.
+fn compile(opt: Option<&str>) -> Result<Option<Glob>> {
+    if let Some(pattern) = opt {
+        let mut builder = GlobBuilder::new(pattern);
+        // We enable empty alternates to support patterns like "{,**/}*.md",
+        // which is a sensible default as it makes glob patterns more flexible
+        Ok(Some(builder.empty_alternates(true).build()?))
+    } else {
+        Ok(None)
+    }
 }

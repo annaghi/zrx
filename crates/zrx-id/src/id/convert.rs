@@ -34,24 +34,27 @@ use super::Id;
 // Traits
 // ----------------------------------------------------------------------------
 
-/// Conversion to [`Id`].
+/// Attempt conversion into [`Id`].
 ///
 /// This trait allows to convert an arbitrary value into an identifier, using a
 /// [`Cow`] smart pointer to avoid unnecessary cloning, e.g. for references.
-pub trait ToId {
-    /// Converts to an identifier.
-    #[allow(clippy::missing_errors_doc)]
-    fn to_id(&self) -> Result<Cow<'_, Id>>;
+pub trait TryIntoId {
+    /// Attempts to convert into an identifier.
+    ///
+    /// # Errors
+    ///
+    /// In case conversion fails, an error should be returned.
+    fn try_into_id(&self) -> Result<Cow<'_, Id>>;
 }
 
 // ----------------------------------------------------------------------------
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl ToId for &Id {
-    /// Creates an identifier from a reference.
+impl TryIntoId for &Id {
+    /// Attempts to convert into an identifier.
     #[inline]
-    fn to_id(&self) -> Result<Cow<'_, Id>> {
+    fn try_into_id(&self) -> Result<Cow<'_, Id>> {
         Ok(Cow::Borrowed(self))
     }
 }
@@ -60,11 +63,11 @@ impl ToId for &Id {
 // Blanket implementations
 // ----------------------------------------------------------------------------
 
-impl<T> ToId for T
+impl<T> TryIntoId for T
 where
     T: AsRef<str>,
 {
-    /// Creates an identifier from a string.
+    /// Attempts to convert into an identifier.
     ///
     /// # Errors
     ///
@@ -79,15 +82,15 @@ where
     /// ```
     /// # use std::error::Error;
     /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// use zrx_id::{Id, ToId};
+    /// use zrx_id::{Id, TryIntoId};
     ///
     /// // Create identifier from string
-    /// let id = "zri:file:::docs:index.md:".to_id()?;
+    /// let id = "zri:file:::docs:index.md:".try_into_id()?;
     /// # Ok(())
     /// # }
     /// ```
     #[inline]
-    fn to_id(&self) -> Result<Cow<'_, Id>> {
+    fn try_into_id(&self) -> Result<Cow<'_, Id>> {
         self.as_ref().parse().map(Cow::Owned)
     }
 }
