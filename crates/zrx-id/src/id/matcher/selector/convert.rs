@@ -36,30 +36,33 @@ use super::Selector;
 // Traits
 // ----------------------------------------------------------------------------
 
-/// Conversion to [`Selector`].
+/// Attempt conversion into [`Selector`].
 ///
 /// This trait allows to convert an arbitrary value into a selector, using a
 /// [`Cow`] smart pointer to avoid unnecessary cloning, e.g. for references.
-pub trait ToSelector {
-    /// Converts to a selector.
-    #[allow(clippy::missing_errors_doc)]
-    fn to_selector(&self) -> Result<Cow<'_, Selector>>;
+pub trait TryIntoSelector {
+    /// Attempts to convert into a selector.
+    ///
+    /// # Errors
+    ///
+    /// In case conversion fails, an error should be returned.
+    fn try_into_selector(&self) -> Result<Cow<'_, Selector>>;
 }
 
 // ----------------------------------------------------------------------------
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl ToSelector for &Selector {
-    /// Creates a selector from a reference.
+impl TryIntoSelector for &Selector {
+    /// Attempts to convert into a selector.
     #[inline]
-    fn to_selector(&self) -> Result<Cow<'_, Selector>> {
+    fn try_into_selector(&self) -> Result<Cow<'_, Selector>> {
         Ok(Cow::Borrowed(self))
     }
 }
 
-impl ToSelector for &Id {
-    /// Creates a selector from an identifier.
+impl TryIntoSelector for &Id {
+    /// Attempts to convert into a selector.
     ///
     /// Since all identifiers are also valid selectors, implementing this trait
     /// ensures we can also pass identifier references to [`Builder::add`][].
@@ -71,16 +74,16 @@ impl ToSelector for &Id {
     /// ```
     /// # use std::error::Error;
     /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// use zrx_id::{Id, Selector, ToSelector};
+    /// use zrx_id::{Id, Selector, TryIntoSelector};
     ///
     /// // Create selector from identifier
     /// let id: Id = "zri:file:::docs:index.md:".parse()?;
-    /// let selector = (&id).to_selector()?;
+    /// let selector = (&id).try_into_selector()?;
     /// # Ok(())
     /// # }
     /// ```
     #[inline]
-    fn to_selector(&self) -> Result<Cow<'_, Selector>> {
+    fn try_into_selector(&self) -> Result<Cow<'_, Selector>> {
         Builder::from(self.format.to_builder())
             .build()
             .map(Cow::Owned)
@@ -91,11 +94,11 @@ impl ToSelector for &Id {
 // Blanket implementations
 // ----------------------------------------------------------------------------
 
-impl<T> ToSelector for T
+impl<T> TryIntoSelector for T
 where
     T: AsRef<str>,
 {
-    /// Creates a selector from a string.
+    /// Attempts to convert into a selector.
     ///
     /// # Errors
     ///
@@ -110,15 +113,15 @@ where
     /// ```
     /// # use std::error::Error;
     /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// use zrx_id::{Selector, ToSelector};
+    /// use zrx_id::{Selector, TryIntoSelector};
     ///
     /// // Create selector from string
-    /// let selector = "zrs:::::**/*.md:".to_selector()?;
+    /// let selector = "zrs:::::**/*.md:".try_into_selector()?;
     /// # Ok(())
     /// # }
     /// ```
     #[inline]
-    fn to_selector(&self) -> Result<Cow<'_, Selector>> {
+    fn try_into_selector(&self) -> Result<Cow<'_, Selector>> {
         self.as_ref().parse().map(Cow::Owned)
     }
 }

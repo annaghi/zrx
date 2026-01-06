@@ -23,54 +23,53 @@
 
 // ----------------------------------------------------------------------------
 
-//! Term.
+//! Component.
 
-use std::fmt;
+use globset::GlobSet;
+use std::path::Path;
 
-use crate::id::matcher::selector::Selector;
-use crate::id::Id;
+use super::matches::Matches;
+
+mod builder;
+
+pub use builder::Builder;
 
 // ----------------------------------------------------------------------------
-// Enums
+// Structs
 // ----------------------------------------------------------------------------
 
-/// Term.
-#[derive(Clone, PartialEq, Eq)]
-pub enum Term {
-    /// Identifier.
-    Id(Id),
-    /// Selector.
-    Selector(Selector),
+/// Component.
+#[derive(Clone, Debug)]
+pub struct Component {
+    /// Glob set.
+    globset: GlobSet,
+    /// Positions of patterns.
+    mapping: Vec<usize>,
+    /// Positions of empty patterns.
+    matches: Matches,
 }
 
 // ----------------------------------------------------------------------------
-// Trait implementations
+// Implementations
 // ----------------------------------------------------------------------------
 
-impl From<Id> for Term {
-    /// Creates a term from the given identifier.
-    #[inline]
-    fn from(id: Id) -> Self {
-        Self::Id(id)
-    }
-}
-
-impl From<Selector> for Term {
-    /// Creates a term from the given selector.
-    #[inline]
-    fn from(selector: Selector) -> Self {
-        Self::Selector(selector)
-    }
-}
-
-// ----------------------------------------------------------------------------
-
-impl fmt::Debug for Term {
-    /// Formats the term for debugging.
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Id(id) => id.fmt(f),
-            Self::Selector(selector) => selector.fmt(f),
+impl Component {
+    /// Returns a match set, including all indices of matching patterns.
+    ///
+    /// Empty patterns are considered wildcards and thus equivalent to `**`,
+    /// which means they're always included in the match set. Additionally,
+    /// all patterns matching the given path are included, reconstructed from
+    /// the internal mapping.
+    pub fn matches<S>(&self, path: S) -> Matches
+    where
+        S: AsRef<Path>,
+    {
+        let mut matches = self.matches.clone();
+        for index in self.globset.matches(path) {
+            matches.insert(self.mapping[index]);
         }
+
+        // Return matches
+        matches
     }
 }

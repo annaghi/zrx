@@ -25,20 +25,21 @@
 
 //! Matcher.
 
-use globset::GlobSet;
-use std::borrow::Cow;
 use std::str::FromStr;
 
-use super::ToId;
+use super::convert::TryIntoId;
 
 mod builder;
+mod component;
 mod error;
 pub mod expression;
+mod matches;
 pub mod selector;
 
 pub use builder::Builder;
+use component::Component;
 pub use error::{Error, Result};
-use selector::Selector;
+pub use matches::Matches;
 
 // ----------------------------------------------------------------------------
 // Structs
@@ -46,15 +47,18 @@ use selector::Selector;
 
 /// Matcher.
 ///
-/// The [`Matcher`] provides efficient [`Selector`] matching of identifiers by
-/// leveraging the [`globset`] crate. Matchers can be built from an arbitrary
-/// number of selectors, which are then combined into a single [`GlobSet`] for
-/// each of the five components.
+/// The [`Matcher`] provides efficient [`Selector`][] matching of identifiers
+/// by leveraging the [`globset`] crate. Matchers can be built from arbitrary
+/// numbers of selectors, which are then combined into a single [`GlobSet`][]
+/// for each of the six components.
 ///
-/// [`GlobSet`] implements matching using deterministic finite automata (DFA),
+/// [`GlobSet`][] implements matching with deterministic finite automata (DFA),
 /// which allow for efficient matching of multiple selectors against a single
 /// identifier in linear time in relation to the length of the input string,
 /// and which return the set of matched selectors.
+///
+/// [`GlobSet`]: globset::GlobSet
+/// [`Selector`]: crate::id::matcher::selector::Selector
 ///
 /// # Examples
 ///
@@ -78,18 +82,18 @@ use selector::Selector;
 /// ```
 #[derive(Clone, Debug)]
 pub struct Matcher {
-    /// Glob set for provider.
-    provider: GlobSet,
-    /// Glob set for resource.
-    resource: GlobSet,
-    /// Glob set for variant.
-    variant: GlobSet,
-    /// Glob set for context.
-    context: GlobSet,
-    /// Glob set for location.
-    location: GlobSet,
-    /// Glob set for selector.
-    fragment: GlobSet,
+    /// Component for provider.
+    provider: Component,
+    /// Component for resource.
+    resource: Component,
+    /// Component for variant.
+    variant: Component,
+    /// Component for context.
+    context: Component,
+    /// Component for location.
+    location: Component,
+    /// Component for selector.
+    fragment: Component,
 }
 
 // ----------------------------------------------------------------------------
@@ -129,22 +133,15 @@ impl Matcher {
     /// # }
     /// ```
     #[allow(clippy::needless_pass_by_value)]
+    #[inline]
     pub fn is_match<I>(&self, id: I) -> Result<bool>
     where
-        I: ToId,
+        I: TryIntoId,
     {
-        let id = id.to_id()?;
-
-        // Compare components in descending variability
-        Ok(is_match(&self.location, Some(id.location()))
-            && is_match(&self.context, Some(id.context()))
-            && is_match(&self.provider, Some(id.provider()))
-            && is_match(&self.resource, id.resource())
-            && is_match(&self.fragment, id.fragment())
-            && is_match(&self.variant, id.variant()))
+        self.matches(id).map(|bitset| !bitset.is_empty())
     }
 
-    /// Returns the indices of the selectors that match the identifier.
+    /// Returns the indices of selectors that match the identifier.
     ///
     /// This method compares each component of the identifier against the
     /// corresponding component of a selector using the compiled globs, and
@@ -153,7 +150,7 @@ impl Matcher {
     ///
     /// Components are compared in descending variability and their likelihood
     /// for mismatch, starting with the `location`. This approach effectively
-    /// tries to short-circuits the comparison. Note that empty components are
+    /// tries to short-circuit the comparison. Note that empty components are
     /// considered wildcards, so they will always match.
     ///
     /// # Errors
@@ -165,7 +162,7 @@ impl Matcher {
     /// ```
     /// # use std::error::Error;
     /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// use zrx_id::{Id, Matcher};
+    /// use zrx_id::{Id, Matcher, Matches};
     ///
     /// // Create matcher builder and add selector
     /// let mut builder = Matcher::builder();
@@ -176,21 +173,21 @@ impl Matcher {
     ///
     /// // Create identifier and obtain matched selectors
     /// let id: Id = "zri:file:::docs:index.md:".parse()?;
-    /// assert_eq!(matcher.matches(&id)?, [0]);
+    /// assert_eq!(matcher.matches(&id)?, Matches::from_iter([0]));
     /// # Ok(())
     /// # }
     /// ```
-    #[allow(clippy::if_not_else)]
+    #[allow(clippy::missing_panics_doc)]
     #[allow(clippy::needless_pass_by_value)]
-    pub fn matches<I>(&self, id: I) -> Result<Vec<usize>>
+    pub fn matches<I>(&self, id: I) -> Result<Matches>
     where
-        I: ToId,
+        I: TryIntoId,
     {
-        let id = id.to_id()?;
+        let id = id.try_into_id()?;
 
-        // Create a vector and count the matches of each component in the slots
-        // of the vector to find all selectors that match the given identifier
-        let mut slots = vec![0; self.provider.len()];
+        // Query all components from highest to lowest variability, and
+        // intersect the resulting match sets, keeping only full matches
+        let mut opt: Option<Matches> = None;
         for (component, value) in [
             (&self.location, Some(id.location())),
             (&self.context, Some(id.context())),
@@ -199,28 +196,23 @@ impl Matcher {
             (&self.fragment, id.fragment()),
             (&self.variant, id.variant()),
         ] {
-            let matches = matches(component, value);
-            if !matches.is_empty() {
-                for index in matches {
-                    slots[index] += 1;
-                }
+            // If the component doesn't have a value, we could theoretically
+            // ignore all non-empty patterns and only match the empty ones,
+            // but we would then miss selectors that use explicit `*` or `**`
+            // wildcards. We use the unlikely `U+FFFE` to test for those.
+            let path = value.as_deref().unwrap_or("\u{FFFE}");
+            let matches = component.matches(path);
 
-            // Short-circuit, as the current component doesn't match, so we
-            // know the result must be empty and can return immediately
+            // Intersect with or set as tracking match set
+            if let Some(tracked) = &mut opt {
+                tracked.intersect(&matches);
             } else {
-                return Ok(Vec::default());
+                opt = Some(matches);
             }
         }
 
-        // Obtain match set by collecting the indices of all matching selectors,
-        // which are the slots that match exactly six components
-        let iter = slots
-            .iter()
-            .enumerate()
-            .filter_map(|(index, &count)| (count == 6).then_some(index));
-
-        // Return match set
-        Ok(iter.collect())
+        // Return matches
+        Ok(opt.expect("invariant"))
     }
 }
 
@@ -262,36 +254,6 @@ impl FromStr for Matcher {
     fn from_str(value: &str) -> Result<Self> {
         Matcher::builder().with(value)?.build()
     }
-}
-
-// ----------------------------------------------------------------------------
-// Functions
-// ----------------------------------------------------------------------------
-
-/// Returns whether the given value matches any component.
-#[allow(clippy::needless_pass_by_value)]
-fn is_match(component: &GlobSet, value: Option<Cow<'_, str>>) -> bool {
-    component.is_match(prepare(value.as_deref()))
-}
-
-/// Returns the indices of the components that match the value.
-#[allow(clippy::needless_pass_by_value)]
-fn matches(component: &GlobSet, value: Option<Cow<'_, str>>) -> Vec<usize> {
-    component.matches(prepare(value.as_deref()))
-}
-
-/// Prepares a value for comparison.
-///
-/// If the value is absent, we must consider this as a wildcard match if and
-/// only if the globset was initially constructed with wildcards (i.e. `**`).
-/// Unfortunately, this information is not retained in the globset, and we do
-/// not want to use more space than necessary to track empty components.
-///
-/// However, falling back to `U+FFFE`, which is a non-character that should
-/// never appear in a proper UTF-8 string should be sufficient for the check.
-#[inline]
-fn prepare(value: Option<&str>) -> &str {
-    value.unwrap_or("\u{FFFE}")
 }
 
 // ----------------------------------------------------------------------------
@@ -362,7 +324,7 @@ mod tests {
     }
 
     mod matches {
-        use crate::id::matcher::{Matcher, Result};
+        use crate::id::matcher::{Matcher, Matches, Result};
 
         #[test]
         fn handles_selectors() -> Result {
@@ -375,7 +337,7 @@ mod tests {
                 let matcher: Matcher = selector.parse()?;
                 assert_eq!(
                     matcher.matches("zri:file:::docs:index.md:")?,
-                    vec![0]
+                    Matches::from_iter([0])
                 );
             }
             Ok(())
@@ -392,7 +354,7 @@ mod tests {
                 let matcher: Matcher = selector.parse()?;
                 assert_eq!(
                     matcher.matches("zri:file:::docs:index.md:")?,
-                    vec![0]
+                    Matches::from_iter([0])
                 );
             }
             Ok(())
@@ -409,7 +371,7 @@ mod tests {
                 let matcher: Matcher = selector.parse()?;
                 assert_eq!(
                     matcher.matches("zri:file:::docs:index.md:")?,
-                    vec![0]
+                    Matches::from_iter([0])
                 );
             }
             Ok(())
@@ -426,7 +388,7 @@ mod tests {
                 let matcher: Matcher = selector.parse()?;
                 assert_eq!(
                     matcher.matches("zri:file:::docs:index.md:")?,
-                    vec![]
+                    Matches::default()
                 );
             }
             Ok(())

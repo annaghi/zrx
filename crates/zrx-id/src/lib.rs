@@ -29,7 +29,7 @@ mod id;
 
 pub use id::format;
 pub use id::matcher::expression::Expression;
-pub use id::matcher::selector::{Selector, ToSelector};
-pub use id::matcher::{self, Matcher};
+pub use id::matcher::selector::{Selector, TryIntoSelector};
+pub use id::matcher::{self, Matcher, Matches};
 pub use id::uri;
-pub use id::{Builder, Error, Id, Result, ToId};
+pub use id::{Builder, Error, Id, Result, TryIntoId};
