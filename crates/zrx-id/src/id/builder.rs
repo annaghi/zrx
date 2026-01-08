@@ -66,6 +66,41 @@ impl Id {
             format: Format::builder().with(0, "zri"),
         }
     }
+
+    /// Creates a builder from the identifier.
+    ///
+    /// This method creates a builder from the current formatted string, which
+    /// allows to modify components and build a new formatted string. This is
+    /// required in cases when a new formatted string should be derived from an
+    /// existing one.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::error::Error;
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// use zrx_id::Id;
+    ///
+    /// // Create identifier from string
+    /// let id: Id = "zri:file:::docs:index.md:".parse()?;
+    ///
+    /// // Create identifier builder
+    /// let mut builder = id.to_builder();
+    /// builder.set_location("README.md");
+    ///
+    /// // Create identifier from builder
+    /// let id = builder.build()?;
+    /// assert_eq!(id.as_str(), "zri:file:::docs:README.md:");
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn to_builder(&self) -> Builder<'_> {
+        Builder {
+            format: self.format.to_builder().with(0, "zri"),
+        }
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -365,20 +400,5 @@ impl<'a> Builder<'a> {
 
         // No errors occurred
         Ok(Id { format: Arc::new(format), hash })
-    }
-}
-
-// ----------------------------------------------------------------------------
-// Trait implementations
-// ----------------------------------------------------------------------------
-
-impl<'a> From<format::Builder<'a, 7>> for Builder<'a> {
-    /// Creates an identifier builder from a formatted string builder.
-    ///
-    /// This implementation is primarily provided for [`Id::to_builder`],
-    /// which allows to convert an [`Id`] back into a builder.
-    #[inline]
-    fn from(builder: format::Builder<'a, 7>) -> Self {
-        Self { format: builder.with(0, "zri") }
     }
 }

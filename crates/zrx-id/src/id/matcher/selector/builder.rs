@@ -67,6 +67,41 @@ impl Selector {
             format: Format::builder().with(0, "zrs"),
         }
     }
+
+    /// Creates a builder from the selector.
+    ///
+    /// This method creates a builder from the current formatted string, which
+    /// allows to modify components and build a new formatted string. This is
+    /// useful in cases when a new formatted string should be dervied from an
+    /// existing one.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::error::Error;
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// use zrx_id::Selector;
+    ///
+    /// // Create selector from string
+    /// let selector: Selector = "zrs:::::**/*.md:".parse()?;
+    ///
+    /// // Create selector builder
+    /// let mut builder = selector.to_builder();
+    /// builder.set_location("**/index.md");
+    ///
+    /// // Create selector from builder
+    /// let selector = builder.build()?;
+    /// assert_eq!(selector.as_str(), "zrs:::::**/index.md:");
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn to_builder(&self) -> Builder<'_> {
+        Builder {
+            format: self.format.to_builder().with(0, "zrs"),
+        }
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -351,20 +386,5 @@ impl<'a> Builder<'a> {
 
         // No errors occurred
         Ok(Selector { format: Arc::new(format), hash })
-    }
-}
-
-// ----------------------------------------------------------------------------
-// Trait implementations
-// ----------------------------------------------------------------------------
-
-impl<'a> From<format::Builder<'a, 7>> for Builder<'a> {
-    /// Creates a selector builder from a formatted string.
-    ///
-    /// This implementation is primarily provided for [`Selector::to_builder`],
-    /// which allows to convert a [`Selector`] back into a builder.
-    #[inline]
-    fn from(builder: format::Builder<'a, 7>) -> Self {
-        Self { format: builder.with(0, "zrs") }
     }
 }

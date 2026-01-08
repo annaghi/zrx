@@ -32,9 +32,9 @@ use super::Matches;
 // ----------------------------------------------------------------------------
 
 /// Iterator over match set.
-pub struct IntoIter<'a> {
+pub struct IntoIter {
     /// Blocks of bits.
-    data: &'a [u64],
+    data: Vec<u64>,
     /// Current block index.
     index: usize,
     /// Current block.
@@ -42,41 +42,13 @@ pub struct IntoIter<'a> {
 }
 
 // ----------------------------------------------------------------------------
-// Implementations
-// ----------------------------------------------------------------------------
-
-impl Matches {
-    /// Creates an iterator over the match set.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_id::matcher::Matches;
-    ///
-    /// // Create match set from iterator
-    /// let mut matches = Matches::from_iter([0, 1]);
-    ///
-    /// // Create iterator over matches
-    /// for index in matches.iter() {
-    ///     println!("{index:?}");
-    /// }
-    /// ```
-    #[inline]
-    #[must_use]
-    pub fn iter(&self) -> IntoIter<'_> {
-        self.into_iter()
-    }
-}
-
-// ----------------------------------------------------------------------------
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl Iterator for IntoIter<'_> {
+impl Iterator for IntoIter {
     type Item = usize;
 
     /// Returns the next match.
-    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if self.block != 0 {
@@ -87,52 +59,48 @@ impl Iterator for IntoIter<'_> {
                 return Some(self.index << 6 | num);
             }
 
-            // Advance to the next non-zero block
+            // Move to the next block
             self.index += 1;
-            while self.index < self.data.len() {
-                let block = self.data[self.index];
-                if block != 0 {
-                    self.block = block;
-                    break;
-                }
-                self.index += 1;
-            }
 
             // If all blocks are exhausted, we're done
             if self.index >= self.data.len() {
                 return None;
             }
+
+            // Update the current block to the next block
+            self.block = self.data[self.index];
         }
     }
 }
 
 // ----------------------------------------------------------------------------
 
-impl<'a> IntoIterator for &'a Matches {
+impl IntoIterator for Matches {
     type Item = usize;
-    type IntoIter = IntoIter<'a>;
+    type IntoIter = IntoIter;
 
     /// Creates an iterator over the match set.
     ///
     /// # Examples
     ///
     /// ```
-    /// use zrx_id::matcher::Matches;
+    /// use zrx_id::Matches;
     ///
     /// // Create match set from iterator
     /// let mut matches = Matches::from_iter([0, 1]);
     ///
-    /// // Create iterator over matches
-    /// for index in &matches {
+    /// // Create iterator over match set
+    /// for index in matches {
     ///     println!("{index:?}");
     /// }
     /// ```
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
+        let block = self.data[0];
         IntoIter {
-            data: &self.data,
+            data: self.data,
             index: 0,
-            block: self.data[0],
+            block,
         }
     }
 }

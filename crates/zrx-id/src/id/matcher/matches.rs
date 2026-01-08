@@ -27,6 +27,8 @@
 
 mod iter;
 
+pub use iter::IntoIter;
+
 // ----------------------------------------------------------------------------
 // Structs
 // ----------------------------------------------------------------------------
@@ -56,7 +58,7 @@ impl Matches {
     /// # Examples
     ///
     /// ```
-    /// use zrx_id::matcher::Matches;
+    /// use zrx_id::Matches;
     ///
     /// // Create match set
     /// let matches = Matches::new();
@@ -71,7 +73,7 @@ impl Matches {
     /// # Examples
     ///
     /// ```
-    /// use zrx_id::matcher::Matches;
+    /// use zrx_id::Matches;
     ///
     /// // Create match set with capacity
     /// let matches = Matches::with_capacity(128);
@@ -95,7 +97,7 @@ impl Matches {
     /// # Examples
     ///
     /// ```
-    /// use zrx_id::matcher::Matches;
+    /// use zrx_id::Matches;
     ///
     /// // Create match set
     /// let matches = Matches::from_iter([1]);
@@ -117,7 +119,7 @@ impl Matches {
     /// # Examples
     ///
     /// ```
-    /// use zrx_id::matcher::Matches;
+    /// use zrx_id::Matches;
     ///
     /// // Create match set
     /// let mut matches = Matches::new();
@@ -131,18 +133,57 @@ impl Matches {
         self.data[block] |= 1 << (index & 63);
     }
 
-    /// Intersects the match set with the given one.
+    /// Clears all matches in the match set.
     ///
     /// # Examples
     ///
     /// ```
-    /// use zrx_id::matcher::Matches;
+    /// use zrx_id::Matches;
+    ///
+    /// // Create match set
+    /// let mut matches = Matches::from_iter([0, 1, 2]);
+    ///
+    /// // Remove all matches
+    /// matches.clear();
+    /// assert!(matches.is_empty());
+    /// ```
+    pub fn clear(&mut self) {
+        self.data.fill(0);
+    }
+
+    /// Computes the union with the given match set.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_id::Matches;
     ///
     /// // Create two match set
     /// let mut a = Matches::from_iter([0, 1]);
     /// let mut b = Matches::from_iter([1, 2]);
     ///
-    /// // Intersect match sets
+    /// // Create union of match sets
+    /// a.union(&b);
+    /// assert_eq!(a, Matches::from_iter([0, 1, 2]));
+    /// ```
+    pub fn union(&mut self, other: &Self) {
+        for (a, b) in self.data.iter_mut().zip(&other.data) {
+            *a |= *b;
+        }
+    }
+
+    /// Computes the intersection with the given match set.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_id::Matches;
+    ///
+    /// // Create two match set
+    /// let mut a = Matches::from_iter([0, 1]);
+    /// let mut b = Matches::from_iter([1, 2]);
+    ///
+    /// // Create intersection of match sets
     /// a.intersect(&b);
     /// assert_eq!(a, Matches::from_iter([1]));
     /// ```
@@ -152,28 +193,46 @@ impl Matches {
         }
     }
 
-    /// Returns whether the match set is a subset of the given one.
+    /// Returns whether both match sets have any matches in common.
     ///
     /// # Examples
     ///
     /// ```
-    /// use zrx_id::matcher::Matches;
+    /// use zrx_id::Matches;
+    ///
+    /// // Create two match set
+    /// let mut a = Matches::from_iter([0, 1]);
+    /// let mut b = Matches::from_iter([1, 2]);
+    ///
+    /// // Ensure match sets have any matches in common
+    /// assert!(a.has_any(&b));
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn has_any(&self, other: &Self) -> bool {
+        let mut iter = self.data.iter().zip(&other.data);
+        iter.any(|(a, b)| (*a & *b) != 0)
+    }
+
+    /// Returns whether both match sets have all matches in common.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_id::Matches;
     ///
     /// // Create two match set
     /// let mut a = Matches::from_iter([0, 1]);
     /// let mut b = Matches::from_iter([0, 1, 2]);
     ///
-    /// // Ensure match set is subset
-    /// assert!(a.is_subset(&b));
+    /// // Ensure match sets have all matches in common
+    /// assert!(a.has_all(&b));
     /// ```
+    #[inline]
     #[must_use]
-    pub fn is_subset(&self, other: &Self) -> bool {
-        for (a, b) in self.data.iter().zip(&other.data) {
-            if (*a & *b) != *a {
-                return false;
-            }
-        }
-        true
+    pub fn has_all(&self, other: &Self) -> bool {
+        let mut iter = self.data.iter().zip(&other.data);
+        iter.all(|(a, b)| (*a & *b) == *a)
     }
 
     /// Resolve the block for the given match.
@@ -216,7 +275,7 @@ impl FromIterator<usize> for Matches {
     /// # Examples
     ///
     /// ```
-    /// use zrx_id::matcher::Matches;
+    /// use zrx_id::Matches;
     ///
     /// // Create match set from iterator
     /// let matches = Matches::from_iter([0, 1]);
@@ -242,7 +301,7 @@ impl Default for Matches {
     /// # Examples
     ///
     /// ```
-    /// use zrx_id::matcher::Matches;
+    /// use zrx_id::Matches;
     ///
     /// // Create match set
     /// let matches = Matches::default();

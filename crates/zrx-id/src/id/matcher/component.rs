@@ -39,12 +39,12 @@ pub use builder::Builder;
 // ----------------------------------------------------------------------------
 
 /// Component.
-#[derive(Clone, Debug)]
+#[derive(Debug, Default)]
 pub struct Component {
     /// Glob set.
     globset: GlobSet,
     /// Positions of patterns.
-    mapping: Vec<usize>,
+    mapping: Box<[usize]>,
     /// Positions of empty patterns.
     matches: Matches,
 }
@@ -54,7 +54,7 @@ pub struct Component {
 // ----------------------------------------------------------------------------
 
 impl Component {
-    /// Returns a match set, including all indices of matching patterns.
+    /// Returns a match set with indices of all matching patterns.
     ///
     /// Empty patterns are considered wildcards and thus equivalent to `**`,
     /// which means they're always included in the match set. Additionally,

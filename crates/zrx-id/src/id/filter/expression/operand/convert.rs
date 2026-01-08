@@ -23,50 +23,55 @@
 
 // ----------------------------------------------------------------------------
 
-//! Condition.
+//! Operand conversions.
 
-use zrx_id::{Id, Matcher};
+use crate::id::filter::expression::Result;
 
-use super::ConditionFn;
+use super::Operand;
 
 // ----------------------------------------------------------------------------
-// Trait implementations
+// Traits
 // ----------------------------------------------------------------------------
 
-impl ConditionFn<Id> for Matcher {
-    /// Returns whether the given identifier satisfies the condition.
+/// Attempt conversion into [`Operand`].
+///
+/// This trait is primarily provided for a more convenient API when building
+/// expressions. It's used by the [`Expression`][] builder, in order to allow
+/// for fallible operations within closures. Operands itself can't fail to be
+/// created, but the constructs from which operands are created can.
+///
+/// [`Expression`]: crate::id::filter::expression::Expression
+pub trait TryIntoOperand {
+    /// Attempts to convert into an operand.
     ///
-    /// This allows to create a [`Condition`][] from a [`Matcher`], making it
-    /// convenient to use a set of [`Selector`][] instances for matching.
+    /// # Errors
     ///
-    /// [`Condition`]: crate::stream::barrier::Condition
-    /// [`Selector`]: zrx_id::Selector
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use std::error::Error;
-    /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// use zrx_id::{Id, Matcher};
-    /// use zrx_stream::barrier::Condition;
-    ///
-    /// // Create matcher builder and add selector
-    /// let mut builder = Matcher::builder();
-    /// builder.add(&"zrs:::::**/*.md:")?;
-    ///
-    /// // Create condition from matcher
-    /// let condition = Condition::new(builder.build()?);
-    ///
-    /// // Create identifier and test condition
-    /// let id: Id = "zri:file:::docs:index.md:".parse()?;
-    /// assert!(condition.satisfies(&id));
-    /// # Ok(())
-    /// # }
-    /// ```
+    /// In case conversion fails, an error should be returned.
+    fn try_into_operand(self) -> Result<Operand>;
+}
+
+// ----------------------------------------------------------------------------
+// Blanket implementations
+// ----------------------------------------------------------------------------
+
+impl<T> TryIntoOperand for T
+where
+    T: Into<Operand>,
+{
+    /// Creates an operand from a value `T` and wraps it in a result.
     #[inline]
-    fn satisfies(&self, id: &Id) -> bool {
-        // We can safely use expect here, since we're certain we pass a valid
-        // identifier to the matcher, which means it can never fail
-        self.is_match(id).expect("invariant")
+    fn try_into_operand(self) -> Result<Operand> {
+        Ok(self.into())
+    }
+}
+
+impl<T> TryIntoOperand for Result<T>
+where
+    T: Into<Operand>,
+{
+    /// Creates an operand from a value `T` in a result.
+    #[inline]
+    fn try_into_operand(self) -> Result<Operand> {
+        self.map(Into::into)
     }
 }

@@ -23,50 +23,28 @@
 
 // ----------------------------------------------------------------------------
 
-//! Condition.
+//! Filter error.
 
-use zrx_id::{Id, Matcher};
+use std::result;
+use thiserror::Error;
 
-use super::ConditionFn;
+use crate::id::matcher;
 
 // ----------------------------------------------------------------------------
-// Trait implementations
+// Enums
 // ----------------------------------------------------------------------------
 
-impl ConditionFn<Id> for Matcher {
-    /// Returns whether the given identifier satisfies the condition.
-    ///
-    /// This allows to create a [`Condition`][] from a [`Matcher`], making it
-    /// convenient to use a set of [`Selector`][] instances for matching.
-    ///
-    /// [`Condition`]: crate::stream::barrier::Condition
-    /// [`Selector`]: zrx_id::Selector
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use std::error::Error;
-    /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// use zrx_id::{Id, Matcher};
-    /// use zrx_stream::barrier::Condition;
-    ///
-    /// // Create matcher builder and add selector
-    /// let mut builder = Matcher::builder();
-    /// builder.add(&"zrs:::::**/*.md:")?;
-    ///
-    /// // Create condition from matcher
-    /// let condition = Condition::new(builder.build()?);
-    ///
-    /// // Create identifier and test condition
-    /// let id: Id = "zri:file:::docs:index.md:".parse()?;
-    /// assert!(condition.satisfies(&id));
-    /// # Ok(())
-    /// # }
-    /// ```
-    #[inline]
-    fn satisfies(&self, id: &Id) -> bool {
-        // We can safely use expect here, since we're certain we pass a valid
-        // identifier to the matcher, which means it can never fail
-        self.is_match(id).expect("invariant")
-    }
+/// Filter error.
+#[derive(Debug, Error)]
+pub enum Error {
+    /// Matcher error.
+    #[error(transparent)]
+    Matcher(#[from] matcher::Error),
 }
+
+// ----------------------------------------------------------------------------
+// Type aliases
+// ----------------------------------------------------------------------------
+
+/// Filter result.
+pub type Result<T = ()> = result::Result<T, Error>;

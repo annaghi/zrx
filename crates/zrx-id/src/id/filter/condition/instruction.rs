@@ -23,69 +23,37 @@
 
 // ----------------------------------------------------------------------------
 
-//! Expression.
+//! Instruction.
 
-use super::{Matcher, Result};
-
-mod builder;
-pub mod operand;
-mod terms;
-
-pub use builder::Builder;
-pub use operand::{Operand, Operator, Term};
-pub use terms::Terms;
+use crate::id::filter::expression::Operator;
+use crate::id::matcher::Matches;
 
 // ----------------------------------------------------------------------------
-// Structs
+// Enums
 // ----------------------------------------------------------------------------
 
-/// Expression.
-///
-/// This data type allows modeling arbitrarily nested expressions, which can be
-/// combined using the logical `AND`, `OR`, and `NOT` operators.
-#[derive(Clone, Debug)]
-pub struct Expression {
-    /// Expression operator.
-    operator: Operator,
-    /// Expression operands.
-    operands: Vec<Operand>,
+/// Instruction.
+#[derive(Debug)]
+pub enum Instruction {
+    /// Compare terms against matches.
+    Compare(Operator, Matches),
+    /// Combine prior results.
+    Combine(Operator, usize),
 }
 
 // ----------------------------------------------------------------------------
 // Implementations
 // ----------------------------------------------------------------------------
 
-impl Expression {
-    /// Compiles the expression into a matcher.
-    ///
-    /// # Errors
-    ///
-    /// This function will return an error if compiling the expression fails.
-    pub fn compile(self) -> Result<Matcher> {
-        let mut matcher = Matcher::builder();
-
-        // Extract all terms from expression and create matcher.
-        let mut stack = Vec::from([self]);
-        while let Some(expr) = stack.pop() {
-            if expr.operator != Operator::Not {
-                continue;
-            }
-            for operand in expr.operands.into_iter().rev() {
-                match operand {
-                    Operand::Expression(expr) => stack.push(expr),
-                    Operand::Term(term) => match term {
-                        Term::Id(id) => {
-                            matcher.add(&id)?;
-                        }
-                        Term::Selector(selector) => {
-                            matcher.add(&selector)?;
-                        }
-                    },
-                }
-            }
+#[allow(clippy::must_use_candidate)]
+impl Instruction {
+    /// Returns the operator.
+    #[allow(clippy::match_same_arms)]
+    #[inline]
+    pub fn operator(&self) -> Operator {
+        match self {
+            Instruction::Compare(operator, _) => *operator,
+            Instruction::Combine(operator, _) => *operator,
         }
-
-        // Build and return matcher
-        matcher.build()
     }
 }

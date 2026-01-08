@@ -27,8 +27,9 @@
 
 mod id;
 
+pub use id::filter::expression::Expression;
+pub use id::filter::{self, Filter};
 pub use id::format;
-pub use id::matcher::expression::Expression;
 pub use id::matcher::selector::{Selector, TryIntoSelector};
 pub use id::matcher::{self, Matcher, Matches};
 pub use id::uri;

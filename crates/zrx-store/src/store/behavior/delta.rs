@@ -84,7 +84,7 @@ where
     ///
     /// // Update store and inspect changes
     /// for (key, value) in store.changes([("a", 42)]) {
-    ///   println!("{key}: {value:?}");
+    ///     println!("{key}: {value:?}");
     /// }
     /// ```
     fn changes<T>(&mut self, iter: T) -> impl Iterator<Item = (K, Option<V>)>

@@ -23,28 +23,48 @@
 
 // ----------------------------------------------------------------------------
 
-//! Operand error.
+//! Expression conversions.
 
-use std::result;
-use thiserror::Error;
-
-use crate::id;
+use super::operand::{Operand, Operator, Term};
+use super::Expression;
 
 // ----------------------------------------------------------------------------
-// Enums
+// Traits
 // ----------------------------------------------------------------------------
 
-/// Operand error.
-#[derive(Debug, Error)]
-pub enum Error {
-    /// Identifier error.
-    #[error(transparent)]
-    Id(#[from] id::Error),
+/// Conversion into [`Expression`].
+pub trait IntoExpression {
+    /// Convert into an expression.
+    fn into_expression(self) -> Expression;
 }
 
 // ----------------------------------------------------------------------------
-// Type aliases
+// Trait implementations
 // ----------------------------------------------------------------------------
 
-/// Operand result.
-pub type Result<T = ()> = result::Result<T, Error>;
+impl IntoExpression for Expression {
+    /// Returns the expression as is.
+    #[inline]
+    fn into_expression(self) -> Expression {
+        self
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Blanket implementations
+// ----------------------------------------------------------------------------
+
+impl<T> IntoExpression for T
+where
+    T: Into<Term>,
+{
+    /// Creates an expression from the given term.
+    #[inline]
+    fn into_expression(self) -> Expression {
+        let term = Operand::from(self.into());
+        Expression {
+            operator: Operator::Any,
+            operands: Vec::from([term]),
+        }
+    }
+}

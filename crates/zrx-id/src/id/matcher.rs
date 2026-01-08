@@ -32,8 +32,7 @@ use super::convert::TryIntoId;
 mod builder;
 mod component;
 mod error;
-pub mod expression;
-mod matches;
+pub mod matches;
 pub mod selector;
 
 pub use builder::Builder;
@@ -69,7 +68,7 @@ pub use matches::Matches;
 ///
 /// // Create matcher builder and add selector
 /// let mut builder = Matcher::builder();
-/// builder.add("zrs:::::**/*.md:")?;
+/// builder.add(&"zrs:::::**/*.md:")?;
 ///
 /// // Create matcher from builder
 /// let matcher = builder.build()?;
@@ -80,7 +79,7 @@ pub use matches::Matches;
 /// # Ok(())
 /// # }
 /// ```
-#[derive(Clone, Debug)]
+#[derive(Debug, Default)]
 pub struct Matcher {
     /// Component for provider.
     provider: Component,
@@ -110,7 +109,7 @@ impl Matcher {
     ///
     /// # Errors
     ///
-    /// This method returns an error if the given identifier is invalid.
+    /// This method returns [`Error::Id`] if the identifier is invalid.
     ///
     /// # Examples
     ///
@@ -121,7 +120,7 @@ impl Matcher {
     ///
     /// // Create matcher builder and add selector
     /// let mut builder = Matcher::builder();
-    /// builder.add("zrs:::::**/*.md:")?;
+    /// builder.add(&"zrs:::::**/*.md:")?;
     ///
     /// // Create matcher from builder
     /// let matcher = builder.build()?;
@@ -132,13 +131,12 @@ impl Matcher {
     /// # Ok(())
     /// # }
     /// ```
-    #[allow(clippy::needless_pass_by_value)]
     #[inline]
-    pub fn is_match<I>(&self, id: I) -> Result<bool>
+    pub fn is_match<T>(&self, id: &T) -> Result<bool>
     where
-        I: TryIntoId,
+        T: TryIntoId,
     {
-        self.matches(id).map(|bitset| !bitset.is_empty())
+        self.matches(id).map(|matches| !matches.is_empty())
     }
 
     /// Returns the indices of selectors that match the identifier.
@@ -155,7 +153,7 @@ impl Matcher {
     ///
     /// # Errors
     ///
-    /// This method returns an error if the given identifier is invalid.
+    /// This method returns [`Error::Id`] if the identifier is invalid.
     ///
     /// # Examples
     ///
@@ -166,7 +164,7 @@ impl Matcher {
     ///
     /// // Create matcher builder and add selector
     /// let mut builder = Matcher::builder();
-    /// builder.add("zrs:::::**/*.md:")?;
+    /// builder.add(&"zrs:::::**/*.md:")?;
     ///
     /// // Create matcher from builder
     /// let matcher = builder.build()?;
@@ -178,10 +176,9 @@ impl Matcher {
     /// # }
     /// ```
     #[allow(clippy::missing_panics_doc)]
-    #[allow(clippy::needless_pass_by_value)]
-    pub fn matches<I>(&self, id: I) -> Result<Matches>
+    pub fn matches<T>(&self, id: &T) -> Result<Matches>
     where
-        I: TryIntoId,
+        T: TryIntoId,
     {
         let id = id.try_into_id()?;
 
@@ -252,7 +249,7 @@ impl FromStr for Matcher {
     /// # }
     /// ```
     fn from_str(value: &str) -> Result<Self> {
-        Matcher::builder().with(value)?.build()
+        Matcher::builder().with(&value)?.build()
     }
 }
 
@@ -275,7 +272,7 @@ mod tests {
                 "zrs::::::",
             ] {
                 let matcher: Matcher = selector.parse()?;
-                assert!(matcher.is_match("zri:file:::docs:index.md:")?);
+                assert!(matcher.is_match(&"zri:file:::docs:index.md:")?);
             }
             Ok(())
         }
@@ -289,7 +286,7 @@ mod tests {
                 "zrs:*:*:*:*:*:",
             ] {
                 let matcher: Matcher = selector.parse()?;
-                assert!(matcher.is_match("zri:file:::docs:index.md:")?);
+                assert!(matcher.is_match(&"zri:file:::docs:index.md:")?);
             }
             Ok(())
         }
@@ -303,7 +300,7 @@ mod tests {
                 "zrs:::::{*}:",
             ] {
                 let matcher: Matcher = selector.parse()?;
-                assert!(matcher.is_match("zri:file:::docs:index.md:")?);
+                assert!(matcher.is_match(&"zri:file:::docs:index.md:")?);
             }
             Ok(())
         }
@@ -317,7 +314,7 @@ mod tests {
                 "zrs::::::anchor",
             ] {
                 let matcher: Matcher = selector.parse()?;
-                assert!(!matcher.is_match("zri:file:::docs:index.md:")?);
+                assert!(!matcher.is_match(&"zri:file:::docs:index.md:")?);
             }
             Ok(())
         }
@@ -336,7 +333,7 @@ mod tests {
             ] {
                 let matcher: Matcher = selector.parse()?;
                 assert_eq!(
-                    matcher.matches("zri:file:::docs:index.md:")?,
+                    matcher.matches(&"zri:file:::docs:index.md:")?,
                     Matches::from_iter([0])
                 );
             }
@@ -353,7 +350,7 @@ mod tests {
             ] {
                 let matcher: Matcher = selector.parse()?;
                 assert_eq!(
-                    matcher.matches("zri:file:::docs:index.md:")?,
+                    matcher.matches(&"zri:file:::docs:index.md:")?,
                     Matches::from_iter([0])
                 );
             }
@@ -370,7 +367,7 @@ mod tests {
             ] {
                 let matcher: Matcher = selector.parse()?;
                 assert_eq!(
-                    matcher.matches("zri:file:::docs:index.md:")?,
+                    matcher.matches(&"zri:file:::docs:index.md:")?,
                     Matches::from_iter([0])
                 );
             }
@@ -387,7 +384,7 @@ mod tests {
             ] {
                 let matcher: Matcher = selector.parse()?;
                 assert_eq!(
-                    matcher.matches("zri:file:::docs:index.md:")?,
+                    matcher.matches(&"zri:file:::docs:index.md:")?,
                     Matches::default()
                 );
             }

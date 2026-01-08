@@ -32,7 +32,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use crate::id::format::Format;
-use crate::id::{Error, Result};
+use crate::id::{Error, Id, Result};
 
 mod builder;
 mod convert;
@@ -116,39 +116,6 @@ pub struct Selector {
 // ----------------------------------------------------------------------------
 
 impl Selector {
-    /// Creates a builder from this formatted string.
-    ///
-    /// This method creates a builder from the current formatted string, which
-    /// allows to modify components and build a new formatted string. This is
-    /// useful in cases when a new formatted string should be dervied from an
-    /// existing one.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use std::error::Error;
-    /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// use zrx_id::Selector;
-    ///
-    /// // Create selector from string
-    /// let selector: Selector = "zrs:::::**/*.md:".parse()?;
-    ///
-    /// // Create selector builder
-    /// let mut builder = selector.to_builder();
-    /// builder.set_location("**/index.md");
-    ///
-    /// // Create selector from builder
-    /// let selector = builder.build()?;
-    /// assert_eq!(selector.as_str(), "zrs:::::**/index.md:");
-    /// # Ok(())
-    /// # }
-    /// ```
-    #[inline]
-    #[must_use]
-    pub fn to_builder(&self) -> Builder<'_> {
-        Builder::from(self.format.to_builder())
-    }
-
     /// Returns the string representation.
     ///
     /// # Examples
@@ -254,6 +221,42 @@ impl FromStr for Selector {
         if format.get(0) != "zrs" {
             Err(Error::Prefix)?;
         }
+
+        // Precompute hash for fast hashing
+        let hash = {
+            let mut hasher = DefaultHasher::new();
+            format.hash(&mut hasher);
+            hasher.finish()
+        };
+
+        // No errors occurred
+        Ok(Self { format: Arc::new(format), hash })
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+impl TryFrom<Id> for Selector {
+    type Error = Error;
+
+    /// Attempts to create a selector from an identifier.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::error::Error;
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// use zrx_id::{Id, Selector};
+    ///
+    /// // Create selector from identifier
+    /// let id: Id = "zri:file:::docs:index.md:".parse()?;
+    /// let selector: Selector = id.try_into()?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[inline]
+    fn try_from(id: Id) -> Result<Self> {
+        let format = id.format.to_builder().with(0, "zrs").build()?;
 
         // Precompute hash for fast hashing
         let hash = {

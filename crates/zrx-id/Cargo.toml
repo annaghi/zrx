@@ -41,4 +41,5 @@ zrx-path.workspace = true
 
 globset.workspace = true
 percent-encoding.workspace = true
+slab.workspace = true
 thiserror.workspace = true
