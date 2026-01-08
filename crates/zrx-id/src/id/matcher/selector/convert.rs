@@ -29,7 +29,6 @@ use std::borrow::Cow;
 
 use crate::id::{Id, Result};
 
-use super::builder::Builder;
 use super::Selector;
 
 // ----------------------------------------------------------------------------
@@ -53,7 +52,7 @@ pub trait TryIntoSelector {
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl TryIntoSelector for &Selector {
+impl TryIntoSelector for Selector {
     /// Attempts to convert into a selector.
     #[inline]
     fn try_into_selector(&self) -> Result<Cow<'_, Selector>> {
@@ -61,7 +60,7 @@ impl TryIntoSelector for &Selector {
     }
 }
 
-impl TryIntoSelector for &Id {
+impl TryIntoSelector for Id {
     /// Attempts to convert into a selector.
     ///
     /// Since all identifiers are also valid selectors, implementing this trait
@@ -84,9 +83,7 @@ impl TryIntoSelector for &Id {
     /// ```
     #[inline]
     fn try_into_selector(&self) -> Result<Cow<'_, Selector>> {
-        Builder::from(self.format.to_builder())
-            .build()
-            .map(Cow::Owned)
+        self.to_owned().try_into().map(Cow::Owned)
     }
 }
 

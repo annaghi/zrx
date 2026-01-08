@@ -25,9 +25,8 @@
 
 //! Expression builder.
 
-use crate::matcher::expression::operand::TryIntoOperand;
-
-use super::operand::{Operand, Operator, Result};
+use super::error::Result;
+use super::operand::{Operand, Operator, TryIntoOperand};
 use super::Expression;
 
 // ----------------------------------------------------------------------------
@@ -35,7 +34,7 @@ use super::Expression;
 // ----------------------------------------------------------------------------
 
 /// Expression builder.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Builder {
     /// Expression operator.
     operator: Operator,
@@ -52,7 +51,26 @@ impl Expression {
     ///
     /// # Errors
     ///
-    /// This function will return an error if building the expression fails.
+    /// This method returns [`Error::Id`][] if any of the operands is invalid.
+    ///
+    /// [`Error::Id`]: crate::id::filter::expression::Error::Id
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::error::Error;
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// use zrx_id::{selector, Expression};
+    ///
+    /// // Create expression
+    /// let expr = Expression::any(|expr| {
+    ///     expr.with(selector!(location = "**/*.png")?)?
+    ///         .with(selector!(location = "**/*.jpg")?)
+    /// })?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[inline]
     pub fn any<F>(f: F) -> Result<Self>
     where
         F: FnOnce(Builder) -> Result<Builder>,
@@ -68,7 +86,26 @@ impl Expression {
     ///
     /// # Errors
     ///
-    /// This function will return an error if building the expression fails.
+    /// This method returns [`Error::Id`][] if any of the operands is invalid.
+    ///
+    /// [`Error::Id`]: crate::id::filter::expression::Error::Id
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::error::Error;
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// use zrx_id::{selector, Expression};
+    ///
+    /// // Create expression
+    /// let expr = Expression::all(|expr| {
+    ///     expr.with(selector!(location = "**/*.md")?)?
+    ///         .with(selector!(provider = "file")?)
+    /// })?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[inline]
     pub fn all<F>(f: F) -> Result<Self>
     where
         F: FnOnce(Builder) -> Result<Builder>,
@@ -84,7 +121,29 @@ impl Expression {
     ///
     /// # Errors
     ///
-    /// This function will return an error if building the expression fails.
+    /// This method returns [`Error::Id`][] if any of the operands is invalid.
+    ///
+    /// [`Error::Id`]: crate::id::filter::expression::Error::Id
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::error::Error;
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// use zrx_id::{selector, Expression};
+    ///
+    /// // Create expression
+    /// let expr = Expression::all(|expr| {
+    ///     expr.with(selector!(location = "**/*.md")?)?
+    ///         .with(Expression::not(|expr| {
+    ///             expr.with(selector!(provider = "file")?)
+    ///         })
+    ///     )
+    /// })?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[inline]
     pub fn not<F>(f: F) -> Result<Self>
     where
         F: FnOnce(Builder) -> Result<Builder>,
@@ -104,18 +163,40 @@ impl Builder {
     ///
     /// # Errors
     ///
-    /// This function will return an error if operand conversion fails.
-    pub fn with<O>(mut self, operand: O) -> Result<Self>
+    /// This method returns [`Error::Id`][] if the operand is invalid.
+    ///
+    /// [`Error::Id`]: crate::id::filter::expression::Error::Id
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::error::Error;
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// use zrx_id::{selector, Expression};
+    ///
+    /// // Create expression
+    /// let expr = Expression::any(|expr| {
+    ///     expr.with(selector!(location = "**/*.png")?)?
+    ///         .with(selector!(location = "**/*.jpg")?)
+    /// })?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[inline]
+    pub fn with<T>(mut self, operand: T) -> Result<Self>
     where
-        O: TryIntoOperand,
+        T: TryIntoOperand,
     {
         self.operands.push(operand.try_into_operand()?);
         Ok(self)
     }
 
     /// Builds the expression.
+    ///
+    /// This method is private, as building is done implicitly through the
+    /// construction methods defined as part of [`Expression`].
     #[must_use]
-    pub fn build(self) -> Expression {
+    fn build(self) -> Expression {
         Expression {
             operator: self.operator,
             operands: self.operands,

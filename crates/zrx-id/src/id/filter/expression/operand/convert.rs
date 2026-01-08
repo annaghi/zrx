@@ -23,53 +23,55 @@
 
 // ----------------------------------------------------------------------------
 
-//! Component.
+//! Operand conversions.
 
-use globset::GlobSet;
-use std::path::Path;
+use crate::id::filter::expression::Result;
 
-use super::matches::Matches;
-
-mod builder;
-
-pub use builder::Builder;
+use super::Operand;
 
 // ----------------------------------------------------------------------------
-// Structs
+// Traits
 // ----------------------------------------------------------------------------
 
-/// Component.
-#[derive(Debug, Default)]
-pub struct Component {
-    /// Glob set.
-    globset: GlobSet,
-    /// Positions of patterns.
-    mapping: Box<[usize]>,
-    /// Positions of empty patterns.
-    matches: Matches,
+/// Attempt conversion into [`Operand`].
+///
+/// This trait is primarily provided for a more convenient API when building
+/// expressions. It's used by the [`Expression`][] builder, in order to allow
+/// for fallible operations within closures. Operands itself can't fail to be
+/// created, but the constructs from which operands are created can.
+///
+/// [`Expression`]: crate::id::filter::expression::Expression
+pub trait TryIntoOperand {
+    /// Attempts to convert into an operand.
+    ///
+    /// # Errors
+    ///
+    /// In case conversion fails, an error should be returned.
+    fn try_into_operand(self) -> Result<Operand>;
 }
 
 // ----------------------------------------------------------------------------
-// Implementations
+// Blanket implementations
 // ----------------------------------------------------------------------------
 
-impl Component {
-    /// Returns a match set with indices of all matching patterns.
-    ///
-    /// Empty patterns are considered wildcards and thus equivalent to `**`,
-    /// which means they're always included in the match set. Additionally,
-    /// all patterns matching the given path are included, reconstructed from
-    /// the internal mapping.
-    pub fn matches<S>(&self, path: S) -> Matches
-    where
-        S: AsRef<Path>,
-    {
-        let mut matches = self.matches.clone();
-        for index in self.globset.matches(path) {
-            matches.insert(self.mapping[index]);
-        }
+impl<T> TryIntoOperand for T
+where
+    T: Into<Operand>,
+{
+    /// Creates an operand from a value `T` and wraps it in a result.
+    #[inline]
+    fn try_into_operand(self) -> Result<Operand> {
+        Ok(self.into())
+    }
+}
 
-        // Return matches
-        matches
+impl<T> TryIntoOperand for Result<T>
+where
+    T: Into<Operand>,
+{
+    /// Creates an operand from a value `T` in a result.
+    #[inline]
+    fn try_into_operand(self) -> Result<Operand> {
+        self.map(Into::into)
     }
 }

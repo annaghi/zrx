@@ -23,75 +23,50 @@
 
 // ----------------------------------------------------------------------------
 
-//! Operand.
+//! Filter.
 
-use std::fmt;
+use slab::Slab;
 
-use super::Expression;
+use super::matcher::Matcher;
 
-mod convert;
+mod builder;
+mod condition;
 mod error;
-mod term;
+pub mod expression;
+mod iter;
 
-pub use convert::TryIntoOperand;
+use condition::Condition;
 pub use error::{Error, Result};
-pub use term::Term;
+pub use expression::Expression;
 
 // ----------------------------------------------------------------------------
-// Enums
+// Structs
 // ----------------------------------------------------------------------------
 
-/// Operator.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Operator {
-    /// Logical `AND`.
-    Any,
-    /// Logical `OR`.
-    All,
-    /// Logical `NOT`.
-    Not,
-}
-
-/// Operand.
-#[derive(Clone)]
-pub enum Operand {
-    /// Expression.
-    Expression(Expression),
-    /// Term.
-    Term(Term),
+/// Filter.
+#[derive(Debug, Default)]
+pub struct Filter {
+    /// Condition set, built from expressions.
+    conditions: Slab<Condition>,
+    /// Extracted terms.
+    matcher: Matcher,
 }
 
 // ----------------------------------------------------------------------------
-// Trait implementations
+// Implementations
 // ----------------------------------------------------------------------------
 
-impl From<Expression> for Operand {
-    /// Creates an operand from the given expression.
+#[allow(clippy::must_use_candidate)]
+impl Filter {
+    /// Returns the number of expressions.
     #[inline]
-    fn from(expr: Expression) -> Self {
-        Self::Expression(expr)
+    pub fn len(&self) -> usize {
+        self.conditions.len()
     }
-}
 
-impl<T> From<T> for Operand
-where
-    T: Into<Term>,
-{
-    /// Creates an operand from the given term.
+    /// Returns whether there are any expressions.
     #[inline]
-    fn from(term: T) -> Self {
-        Self::Term(term.into())
-    }
-}
-
-// ----------------------------------------------------------------------------
-
-impl fmt::Debug for Operand {
-    /// Formats the operand for debugging.
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Expression(expr) => expr.fmt(f),
-            Self::Term(term) => term.fmt(f),
-        }
+    pub fn is_empty(&self) -> bool {
+        self.conditions.is_empty()
     }
 }

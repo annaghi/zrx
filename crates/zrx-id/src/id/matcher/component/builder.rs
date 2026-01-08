@@ -104,7 +104,7 @@ impl Builder {
     pub fn build(self) -> Result<Component> {
         Ok(Component {
             globset: self.globset.build()?,
-            mapping: self.mapping,
+            mapping: self.mapping.into_boxed_slice(),
             matches: self.matches,
         })
     }

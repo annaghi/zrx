@@ -35,6 +35,11 @@ use crate::id::Id;
 // ----------------------------------------------------------------------------
 
 /// Term.
+///
+/// Terms can either be identifiers or selectors, both of which are convertible
+/// into [`Selector`]. By providing [`Id`], the term represents an exact match
+/// on identifiers, whereas providing a [`Selector`] allows for more complex
+/// matching criteria.
 #[derive(Clone, PartialEq, Eq)]
 pub enum Term {
     /// Identifier.
@@ -51,7 +56,7 @@ impl From<Id> for Term {
     /// Creates a term from the given identifier.
     #[inline]
     fn from(id: Id) -> Self {
-        Self::Id(id)
+        Term::Id(id)
     }
 }
 
@@ -59,18 +64,28 @@ impl From<Selector> for Term {
     /// Creates a term from the given selector.
     #[inline]
     fn from(selector: Selector) -> Self {
-        Self::Selector(selector)
+        Term::Selector(selector)
     }
 }
 
 // ----------------------------------------------------------------------------
 
+impl fmt::Display for Term {
+    /// Formats the term for display.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Term::Id(id) => id.fmt(f),
+            Term::Selector(selector) => selector.fmt(f),
+        }
+    }
+}
+
 impl fmt::Debug for Term {
     /// Formats the term for debugging.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Id(id) => id.fmt(f),
-            Self::Selector(selector) => selector.fmt(f),
+            Term::Id(id) => id.fmt(f),
+            Term::Selector(selector) => selector.fmt(f),
         }
     }
 }

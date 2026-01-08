@@ -51,7 +51,7 @@ pub trait TryIntoId {
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl TryIntoId for &Id {
+impl TryIntoId for Id {
     /// Attempts to convert into an identifier.
     #[inline]
     fn try_into_id(&self) -> Result<Cow<'_, Id>> {
@@ -71,9 +71,12 @@ where
     ///
     /// # Errors
     ///
-    /// This method returns [`Error::Prefix`][] if the prefix isn't `zri`. Also,
-    /// low-level format errors are returned as part of [`Error::Format`][].
+    /// This method returns [`Error::Prefix`][] if the prefix isn't `zri`, and
+    /// [`Error::Component`][] if any of the `provider`, `context` or `location`
+    /// components are not set. Also, low-level format errors are returned as
+    /// part of [`Error::Format`][].
     ///
+    /// [`Error::Component`]: crate::id::Error::Component
     /// [`Error::Format`]: crate::id::Error::Format
     /// [`Error::Prefix`]: crate::id::Error::Prefix
     ///

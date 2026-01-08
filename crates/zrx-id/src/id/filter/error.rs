@@ -23,14 +23,28 @@
 
 // ----------------------------------------------------------------------------
 
-//! Identifier abstractions and utilities.
+//! Filter error.
 
-mod id;
+use std::result;
+use thiserror::Error;
 
-pub use id::filter::expression::Expression;
-pub use id::filter::{self, Filter};
-pub use id::format;
-pub use id::matcher::selector::{Selector, TryIntoSelector};
-pub use id::matcher::{self, Matcher, Matches};
-pub use id::uri;
-pub use id::{Builder, Error, Id, Result, TryIntoId};
+use crate::id::matcher;
+
+// ----------------------------------------------------------------------------
+// Enums
+// ----------------------------------------------------------------------------
+
+/// Filter error.
+#[derive(Debug, Error)]
+pub enum Error {
+    /// Matcher error.
+    #[error(transparent)]
+    Matcher(#[from] matcher::Error),
+}
+
+// ----------------------------------------------------------------------------
+// Type aliases
+// ----------------------------------------------------------------------------
+
+/// Filter result.
+pub type Result<T = ()> = result::Result<T, Error>;

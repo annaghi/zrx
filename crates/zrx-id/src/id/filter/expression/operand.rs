@@ -23,53 +23,73 @@
 
 // ----------------------------------------------------------------------------
 
-//! Iterator over terms.
+//! Operand.
 
-use super::operand::Operand;
-use super::{Expression, Term};
+use std::fmt;
+
+use super::Expression;
+
+mod convert;
+mod term;
+
+pub use convert::TryIntoOperand;
+pub use term::Term;
 
 // ----------------------------------------------------------------------------
-// Structs
+// Enums
 // ----------------------------------------------------------------------------
 
-/// Iterator over terms.
-pub struct Terms<'a> {
-    /// Stack for depth-first search.
-    stack: Vec<&'a Expression>,
+/// Operator.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Operator {
+    /// Logical `AND`.
+    Any,
+    /// Logical `OR`.
+    All,
+    /// Logical `NOT`.
+    Not,
 }
 
-// ----------------------------------------------------------------------------
-// Implementations
-// ----------------------------------------------------------------------------
-
-impl Expression {
-    /// Creates an iterator over the terms of an expression.
-    #[inline]
-    #[must_use]
-    pub fn terms(&self) -> Terms<'_> {
-        Terms { stack: Vec::from([self]) }
-    }
+/// Operand.
+#[derive(Clone)]
+pub enum Operand {
+    /// Expression.
+    Expression(Expression),
+    /// Term.
+    Term(Term),
 }
 
 // ----------------------------------------------------------------------------
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl<'a> Iterator for Terms<'a> {
-    type Item = &'a Term;
+impl From<Expression> for Operand {
+    /// Creates an operand from the given expression.
+    #[inline]
+    fn from(expr: Expression) -> Self {
+        Operand::Expression(expr)
+    }
+}
 
-    /// Returns the next term.
-    fn next(&mut self) -> Option<Self::Item> {
-        while let Some(expr) = self.stack.pop() {
-            for operand in expr.operands.iter().rev() {
-                match operand {
-                    Operand::Expression(expr) => self.stack.push(expr),
-                    Operand::Term(term) => return Some(term),
-                }
-            }
+impl<T> From<T> for Operand
+where
+    T: Into<Term>,
+{
+    /// Creates an operand from the given term.
+    #[inline]
+    fn from(term: T) -> Self {
+        Operand::Term(term.into())
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+impl fmt::Debug for Operand {
+    /// Formats the operand for debugging.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Operand::Expression(expr) => expr.fmt(f),
+            Operand::Term(term) => term.fmt(f),
         }
-
-        // No more terms to return
-        None
     }
 }

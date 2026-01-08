@@ -37,6 +37,7 @@ use zrx_path::PathExt;
 mod builder;
 mod convert;
 mod error;
+pub mod filter;
 pub mod format;
 mod macros;
 pub mod matcher;
@@ -127,39 +128,6 @@ pub struct Id {
 // ----------------------------------------------------------------------------
 
 impl Id {
-    /// Creates a builder from this formatted string.
-    ///
-    /// This method creates a builder from the current formatted string, which
-    /// allows to modify components and build a new formatted string. This is
-    /// required in cases when a new formatted string should be derived from an
-    /// existing one.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use std::error::Error;
-    /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// use zrx_id::Id;
-    ///
-    /// // Create identifier from string
-    /// let id: Id = "zri:file:::docs:index.md:".parse()?;
-    ///
-    /// // Create identifier builder
-    /// let mut builder = id.to_builder();
-    /// builder.set_location("README.md");
-    ///
-    /// // Create identifier from builder
-    /// let id = builder.build()?;
-    /// assert_eq!(id.as_str(), "zri:file:::docs:README.md:");
-    /// # Ok(())
-    /// # }
-    /// ```
-    #[inline]
-    #[must_use]
-    pub fn to_builder(&self) -> Builder<'_> {
-        Builder::from(self.format.to_builder())
-    }
-
     /// Converts the identifier to a relative file system path.
     ///
     /// This method creates a relative [`PathBuf`] from both, the `context` and
@@ -177,7 +145,7 @@ impl Id {
     /// ```
     /// # use std::error::Error;
     /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// use std::path::PathBuf;
+    /// use std::path::Path;
     /// use zrx_id::Id;
     ///
     /// // Create identifier from string
@@ -185,7 +153,7 @@ impl Id {
     ///
     /// // Create path from identifier
     /// let path = id.to_path();
-    /// assert_eq!(path, PathBuf::from("docs/index.md"));
+    /// assert_eq!(path, Path::new("docs/index.md"));
     /// # Ok(())
     /// # }
     /// ```

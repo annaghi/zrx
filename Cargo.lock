@@ -388,6 +388,7 @@ version = "0.0.4"
 dependencies = [
  "globset",
  "percent-encoding",
+ "slab",
  "thiserror",
  "zrx-path",
 ]

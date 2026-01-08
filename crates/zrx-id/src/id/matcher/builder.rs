@@ -99,14 +99,14 @@ impl Builder {
     /// use zrx_id::Matcher;
     ///
     /// // Create matcher builder with selector
-    /// let mut builder = Matcher::builder().with("zrs:::::**/*.md:")?;
+    /// let mut builder = Matcher::builder().with(&"zrs:::::**/*.md:")?;
     /// # Ok(())
     /// # }
     /// ```
     #[inline]
-    pub fn with<S>(mut self, selector: S) -> Result<Self>
+    pub fn with<T>(mut self, selector: &T) -> Result<Self>
     where
-        S: TryIntoSelector,
+        T: TryIntoSelector,
     {
         self.add(selector)?;
         Ok(self)
@@ -133,14 +133,13 @@ impl Builder {
     ///
     /// // Create matcher builder and add selector
     /// let mut builder = Matcher::builder();
-    /// builder.add("zrs:::::**/*.md:")?;
+    /// builder.add(&"zrs:::::**/*.md:")?;
     /// # Ok(())
     /// # }
     /// ```
-    #[allow(clippy::needless_pass_by_value)]
-    pub fn add<S>(&mut self, selector: S) -> Result<&mut Self>
+    pub fn add<T>(&mut self, selector: &T) -> Result<&mut Self>
     where
-        S: TryIntoSelector,
+        T: TryIntoSelector,
     {
         let selector = selector.try_into_selector()?;
 
@@ -174,7 +173,7 @@ impl Builder {
     ///
     /// // Create matcher builder and add selector
     /// let mut builder = Matcher::builder();
-    /// builder.add("zrs:::::**/*.md:")?;
+    /// builder.add(&"zrs:::::**/*.md:")?;
     ///
     /// // Create matcher from builder
     /// let matcher = builder.build()?;

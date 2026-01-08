@@ -55,7 +55,6 @@ where
     for component in path.components() {
         match component {
             Component::Normal(_) | Component::CurDir => {}
-
             // Disallow path traversal for security reasons, which means `..`
             // is not supported in paths, as it would allow to break out of the
             // context. This means that paths must be normalized before being
@@ -63,7 +62,6 @@ where
             Component::ParentDir => {
                 return Err(Error::ParentDir);
             }
-
             // Disallow absolute paths, as we need to ensure paths are always
             // portable. Note that providers can use the resource component to
             // resolve paths relative to different mount points, e.g., to allow

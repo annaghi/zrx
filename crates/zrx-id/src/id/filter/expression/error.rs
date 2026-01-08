@@ -23,47 +23,28 @@
 
 // ----------------------------------------------------------------------------
 
-//! Operand conversions.
+//! Expression error.
 
-use super::error::Result;
-use super::Operand;
+use std::result;
+use thiserror::Error;
+
+use crate::id;
 
 // ----------------------------------------------------------------------------
-// Traits
+// Enums
 // ----------------------------------------------------------------------------
 
-/// Attempt conversion into [`Operand`].
-pub trait TryIntoOperand {
-    /// Attempts to convert into an operand.
-    ///
-    /// # Errors
-    ///
-    /// In case conversion fails, an error should be returned.
-    fn try_into_operand(self) -> Result<Operand>;
+/// Expression error.
+#[derive(Debug, Error)]
+pub enum Error {
+    /// Identifier error.
+    #[error(transparent)]
+    Id(#[from] id::Error),
 }
 
 // ----------------------------------------------------------------------------
-// Trait implementations
+// Type aliases
 // ----------------------------------------------------------------------------
 
-impl<T> TryIntoOperand for T
-where
-    T: Into<Operand>,
-{
-    /// Creates an operand from a value `T` and wraps it in a result.
-    #[inline]
-    fn try_into_operand(self) -> Result<Operand> {
-        Ok(self.into())
-    }
-}
-
-impl<T> TryIntoOperand for Result<T>
-where
-    T: Into<Operand>,
-{
-    /// Creates an operand from a value `T` in a result.
-    #[inline]
-    fn try_into_operand(self) -> Result<Operand> {
-        self.map(Into::into)
-    }
-}
+/// Expression result.
+pub type Result<T = ()> = result::Result<T, Error>;
