@@ -52,7 +52,7 @@ impl ConditionFn<Id> for Matcher {
     ///
     /// // Create matcher builder and add selector
     /// let mut builder = Matcher::builder();
-    /// builder.add("zrs:::::**/*.md:")?;
+    /// builder.add(&"zrs:::::**/*.md:")?;
     ///
     /// // Create condition from matcher
     /// let condition = Condition::new(builder.build()?);
