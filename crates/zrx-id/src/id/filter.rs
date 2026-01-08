@@ -44,6 +44,37 @@ pub use expression::Expression;
 // ----------------------------------------------------------------------------
 
 /// Filter.
+///
+/// Filters allow to efficiently match identifiers against a set of expressions,
+/// which are composed of conditions and logical operators, and compiled into a
+/// set of optimized instructions for matching. This allows to evaluate complex
+/// logical expressions against identifiers extremely fast.
+///
+/// # Examples
+///
+/// ```
+/// # use std::error::Error;
+/// # fn main() -> Result<(), Box<dyn Error>> {
+/// use zrx_id::{selector, Expression, Filter, Id};
+///
+/// // Create filter builder and insert expression
+/// let mut builder = Filter::builder();
+/// builder.insert(Expression::any(|expr| {
+///     expr.with(selector!(location = "**/*.md")?)?
+///         .with(selector!(provider = "file")?)
+/// })?);
+///
+/// // Create filter from builder
+/// let filter = builder.build()?;
+///
+/// // Create identifier and match expressions
+/// let id: Id = "zri:file:::docs:index.md:".parse()?;
+/// for index in filter.matches(&id)? {
+///     println!("{index:?}");
+/// }
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Debug, Default)]
 pub struct Filter {
     /// Condition set, built from expressions.

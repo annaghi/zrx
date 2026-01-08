@@ -84,7 +84,7 @@ impl Filter {
     /// // Create filter from builder
     /// let filter = builder.build()?;
     ///
-    /// // Create identifier and obtain matched expressions
+    /// // Create identifier and match expressions
     /// let id: Id = "zri:file:::docs:index.md:".parse()?;
     /// for index in filter.matches(&id)? {
     ///     println!("{index:?}");
