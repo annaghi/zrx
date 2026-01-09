@@ -163,6 +163,8 @@ impl Builder {
 
     /// Builds the filter.
     ///
+    /// # Errors
+    ///
     /// This method returns [`Error::Matcher`][] if the underlying matcher
     /// cannot be successfully built.
     ///
@@ -205,8 +207,8 @@ impl Builder {
                 };
             }
 
-            // In the current condition contains any negation, we add its
-            // index to the list of negations, so it's always checked
+            // If the current condition contains a negation, we add its index
+            // to the list of negations, so it's always checked when matching
             let mut iter = condition.instructions().iter();
             if iter.any(|instruction| instruction.operator() == Operator::Not) {
                 negations.push(index as u32);
