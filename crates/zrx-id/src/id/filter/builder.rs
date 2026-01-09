@@ -31,7 +31,7 @@ use crate::id::matcher::Matcher;
 
 use super::condition::Condition;
 use super::error::Result;
-use super::expression::{IntoExpression, Term};
+use super::expression::{IntoExpression, Operator, Term};
 use super::Filter;
 
 // ----------------------------------------------------------------------------
@@ -187,22 +187,37 @@ impl Builder {
     /// # Ok(())
     /// # }
     /// ```
+    #[allow(clippy::cast_possible_truncation)]
     pub fn build(self) -> Result<Filter> {
         let mut builder = Matcher::builder();
 
-        // Add all terms of each condition to the matcher
-        for (_, condition) in &self.conditions {
+        // Initialize term mappings and negations
+        let mut mapping = Vec::with_capacity(self.conditions.len());
+        let mut negations = Vec::new();
+
+        // Add all terms of each condition to the mapping and matcher
+        for (index, condition) in &self.conditions {
             for term in condition.terms() {
+                mapping.push(index as u32);
                 match term {
                     Term::Id(id) => builder.add(id)?,
                     Term::Selector(selector) => builder.add(selector)?,
                 };
+            }
+
+            // In the current condition contains any negation, we add its
+            // index to the list of negations, so it's always checked
+            let mut iter = condition.instructions().iter();
+            if iter.any(|instruction| instruction.operator() == Operator::Not) {
+                negations.push(index as u32);
             }
         }
 
         // Build matcher and return filter
         Ok(Filter {
             conditions: self.conditions,
+            negations,
+            mapping,
             matcher: builder.build()?,
         })
     }

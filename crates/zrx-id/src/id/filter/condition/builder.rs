@@ -111,16 +111,9 @@ impl Builder {
         // use a post-order traversal, but that's more complex to manage
         stack.reverse();
 
-        // We need to check whether there are any negations in the condition
-        // to mark it as universal, as that affects matching semantics
-        let mut iter = stack.iter();
-        let is_universal =
-            iter.any(|instruction| instruction.operator() == Operator::Not);
-
         // Return condition with instructions and extracted terms
         Condition {
             instructions: stack.into_boxed_slice(),
-            is_universal,
             terms: self.terms.into_boxed_slice(),
         }
     }
@@ -177,7 +170,7 @@ fn optimize(group: Group) -> Group {
 }
 
 /// Optimizes nested operators through hoisting if and only if they're of the
-/// same type - note that this does not apply to the logical `NOT` operator.
+/// same type - note that this does not apply to the logical `NOT` operator
 fn optimize_operators(group: Group) -> Group {
     let (outer, operands) = match group {
         Group::Operator(Operator::Not, ..) | Group::Terms(..) => return group,

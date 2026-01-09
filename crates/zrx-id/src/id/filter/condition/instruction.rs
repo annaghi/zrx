@@ -51,9 +51,9 @@ impl Instruction {
     #[allow(clippy::match_same_arms)]
     #[inline]
     pub fn operator(&self) -> Operator {
-        match self {
-            Instruction::Compare(operator, _) => *operator,
-            Instruction::Combine(operator, _) => *operator,
+        match *self {
+            Instruction::Compare(operator, _) => operator,
+            Instruction::Combine(operator, _) => operator,
         }
     }
 }
