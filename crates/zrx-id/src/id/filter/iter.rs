@@ -59,7 +59,7 @@ pub struct Iter<'a> {
 // ----------------------------------------------------------------------------
 
 impl Filter {
-    /// Returns the indices of expressions that match the filter.
+    /// Returns the indices of expressions that match the identifier.
     ///
     /// This method compares all expressions within the filter against the given
     /// identifier, and returns an iterator over the indices of the expressions
@@ -141,7 +141,7 @@ impl Iterator for Iter<'_> {
                 // Either chose the current condition, or the condition that
                 // needs to be checked despite of any matches being present
                 let opt = self.negations.first().copied();
-                opt.filter(|&first| first < index).map_or(index, |first| {
+                opt.filter(|&first| first <= index).map_or(index, |first| {
                     self.negations = &self.negations[1..];
                     first
                 })
@@ -228,6 +228,86 @@ mod tests {
             for (id, check) in [
                 ("zri:file:::docs:index.md:", vec![0]),
                 ("zri:file:::docs:image.png:", vec![]),
+                ("zri:git:::docs:image.md:", vec![]),
+            ] {
+                assert_eq!(
+                    filter.matches(&id)?.collect::<Vec<_>>(), // fmt
+                    check
+                );
+            }
+            Ok(())
+        }
+
+        #[test]
+        fn handles_not() -> Result {
+            let mut builder = Filter::builder();
+            let _ = builder.insert(Expression::not(|expr| {
+                expr.with(selector!(location = "**/*.png")?)?
+                    .with(selector!(location = "**/*.jpg")?)
+            })?);
+            let filter = builder.build()?;
+            for (id, check) in [
+                ("zri:file:::docs:index.md:", vec![0]),
+                ("zri:file:::docs:image.png:", vec![]),
+                ("zri:file:::docs:image.jpg:", vec![]),
+            ] {
+                assert_eq!(
+                    filter.matches(&id)?.collect::<Vec<_>>(), // fmt
+                    check
+                );
+            }
+            Ok(())
+        }
+
+        #[test]
+        fn handles_all_any() -> Result {
+            let mut builder = Filter::builder();
+            let _ = builder.insert(Expression::all(|expr| {
+                expr.with(selector!(provider = "file")?)?
+                    .with(Expression::any(|expr| {
+                        expr.with(selector!(location = "**/*.png")?)?
+                            .with(selector!(location = "**/*.jpg")?)
+                    }))
+            })?);
+            let filter = builder.build()?;
+            for (id, check) in [
+                ("zri:file:::docs:index.md:", vec![]),
+                ("zri:file:::docs:image.png:", vec![0]),
+                ("zri:file:::docs:image.jpg:", vec![0]),
+                ("zri:file:::docs:image.gif:", vec![]),
+                ("zri:git:::docs:image.png:", vec![]),
+                ("zri:git:::docs:image.jpg:", vec![]),
+            ] {
+                assert_eq!(
+                    filter.matches(&id)?.collect::<Vec<_>>(), // fmt
+                    check
+                );
+            }
+            Ok(())
+        }
+
+        #[test]
+        fn handles_all_any_not() -> Result {
+            let mut builder = Filter::builder();
+            let _ = builder.insert(Expression::all(|expr| {
+                expr.with(selector!(provider = "file")?)?
+                    .with(Expression::any(|expr| {
+                        expr.with(selector!(context = "docs")?)? // fmt
+                            .with(Expression::not(|expr| {
+                                expr.with(selector!(location = "**/*.png")?)?
+                                    .with(selector!(location = "**/*.jpg")?)
+                            }),
+                        )
+                    }))
+            })?);
+            let filter = builder.build()?;
+            for (id, check) in [
+                ("zri:file:::docs:index.md:", vec![0]),
+                ("zri:file:::docs:image.png:", vec![0]),
+                ("zri:file:::docs:image.jpg:", vec![0]),
+                ("zri:file:::docs:image.gif:", vec![0]),
+                ("zri:git:::docs:image.png:", vec![]),
+                ("zri:git:::docs:image.jpg:", vec![]),
             ] {
                 assert_eq!(
                     filter.matches(&id)?.collect::<Vec<_>>(), // fmt
