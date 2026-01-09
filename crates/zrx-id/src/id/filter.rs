@@ -35,6 +35,7 @@ mod error;
 pub mod expression;
 mod iter;
 
+pub use builder::Builder;
 use condition::Condition;
 pub use error::{Error, Result};
 pub use expression::{Expression, IntoExpression};
