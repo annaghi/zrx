@@ -55,10 +55,10 @@ use uri::Uri;
 
 /// Identifier.
 ///
-/// Identifiers are structured representations to uniquely identify artifacts
-/// within the system, and are modelled using a structured, yet human-readable,
-/// compact string representation. Every identifier consists of the following
-/// six components:
+/// Identifiers are structured string-based representations which are used to
+/// uniquely identify artifacts as they move through streams and stores. They
+/// use a compact, yet human-readable format that is easy to generate and
+/// parse, and consists of the following six components:
 ///
 /// - `provider`, e.g., file or git.
 /// - `resource`, e.g., volume, branch or tag.
@@ -68,18 +68,16 @@ use uri::Uri;
 /// - `fragment`, e.g., line number or anchor.
 ///
 /// Identifiers implement [`Eq`], [`PartialEq`] and [`Hash`], as well as [`Ord`]
-/// and [`PartialOrd`], as they are used to identify artifacts that move through
-/// the system, which can be stored in hash maps and similar constructs. The
-/// structured string representation is defined as follows:
+/// and [`PartialOrd`], so they can be stored in ordered and unordered storages,
+/// as well as efficiently compared with each other. The structured string-based
+/// representation is defined as follows:
 ///
 /// ``` text
 /// zri:<provider>:<resource>:<variant>:<context>:<location>:<fragment>
 /// ```
 ///
-/// By using a structured string representation as the underlying model, we can
-/// allow for blazing fast cloning and derivation of identifiers. Identifiers
-/// are guaranteed not to contain any backslashes or path traversals in any of
-/// their components.
+/// This ensures blazing fast cloning and editing. Additionally, identifiers are
+/// guaranteed to not contain backslashes or path traversals in components.
 ///
 /// # Examples
 ///

@@ -147,6 +147,7 @@ impl Matches {
     /// matches.clear();
     /// assert!(matches.is_empty());
     /// ```
+    #[inline]
     pub fn clear(&mut self) {
         self.data.fill(0);
     }

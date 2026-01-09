@@ -41,8 +41,8 @@ use super::Filter;
 /// Filter builder.
 ///
 /// This data type uses a [`Slab`] to store conditions efficiently, which makes
-/// it possible to keep indices stable when adding or removing conditions. This
-/// allows users to modify the filter dynamically, and rebuild it on-the-fly
+/// it possible to keep indices stable when adding or removing expressions. It
+/// allows users to modify a [`Filter`] dynamically, and rebuild it on-the-fly
 /// after all modifications were made.
 #[derive(Debug, Default)]
 pub struct Builder {
@@ -73,8 +73,8 @@ impl Filter {
 
     /// Creates a filter builder from the filter.
     ///
-    /// This method allows to modify an existing filter by converting it back
-    /// into a filter builder to insert or remove conditions.
+    /// This method allows to modify an existing [`Filter`] by converting it
+    /// back into a filter builder to insert or remove expressions.
     ///
     /// # Examples
     ///
@@ -87,6 +87,7 @@ impl Filter {
     /// // Create filter builder
     /// let mut builder = filter.into_builder();
     /// ```
+    #[inline]
     #[must_use]
     pub fn into_builder(self) -> Builder {
         Builder { conditions: self.conditions }

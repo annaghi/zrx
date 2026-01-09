@@ -47,10 +47,10 @@ pub use convert::TryIntoSelector;
 
 /// Selector.
 ///
-/// Selectors are similar to identifiers, and are used to match identifiers in
-/// the system. They do not require any component to contain a value, and allow
-/// to define a glob for any of its components. Empty components are always
-/// considered wildcards, which means they match any value.
+/// Selectors are used to match identifiers. Like identifiers, they consist of
+/// six components, which can be set to specific values or left empty to act as
+/// wildcards. Each components can be set to a glob as supported by [`globset`],
+/// which allows for powerful matching capabilities.
 ///
 /// Selectors are no means to an end, but rather a building block to associate
 /// data or functions to identifiers via the construction of a [`Matcher`][],
@@ -64,10 +64,8 @@ pub use convert::TryIntoSelector;
 /// zrs:<provider>:<resource>:<variant>:<context>:<location>:<fragment>
 /// ```
 ///
-/// By using a structured string representation as the underlying model, we can
-/// allow for blazing fast cloning and derivation of new selectors. Selectors
-/// are guaranteed not to contain any backslashes or path traversals in any of
-/// their components.
+/// This ensures blazing fast cloning and editing. Additionally, selectors are
+/// guaranteed to not contain backslashes or path traversals in components.
 ///
 /// [`Matcher`]: crate::id::matcher::Matcher
 ///

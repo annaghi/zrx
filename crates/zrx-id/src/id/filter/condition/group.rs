@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Condition operand.
+//! Condition group.
 
 use crate::id::filter::expression::Operator;
 use crate::id::matcher::Matches;
@@ -46,12 +46,12 @@ pub enum Group {
 // ----------------------------------------------------------------------------
 
 impl Group {
-    /// Maps a condition operand in post-order with the given function.
+    /// Transforms a condition group in post-order with the given function.
     ///
-    /// This method traverses the condition in post-order, and allows to map
-    /// each node using the provided function. The function is applied after
-    /// mapping the child nodes, so a condition can be rewritten from the
-    /// bottom up, e.g., to optimize or transform the condition operand.
+    /// This method traverses the condition group in post-order, and allows to
+    /// map each node with the provided function. The function is applied after
+    /// mapping the child nodes, so a condition group can be rewritten from the
+    /// bottom up, e.g., to optimize or transform the condition group.
     ///
     /// This implementation deliberately uses an explicit stack, because the
     /// Rust compiler will run into stack overflows for deep recursion.
@@ -61,41 +61,41 @@ impl Group {
     where
         F: FnMut(Group) -> Group,
     {
-        // Initialize stack for input and processed conditions
+        // Initialize stack for input and transformed groups
         let mut input = Vec::from([(self, false, 0)]);
         let mut stack = Vec::new();
 
-        // Process input stack until empty, transforming conditions in pre-
-        // order, moving them onto the stack of processed conditions
-        while let Some((condition, visited, arity)) = input.pop() {
-            match condition {
-                // 1st visit: push condition onto stack and mark as visited,
-                // then push children in reverse onto stack for correct order
+        // Process input stack until empty, transforming groups in post-order,
+        // moving them onto the stack of transformed groups
+        while let Some((group, visited, arity)) = input.pop() {
+            match group {
+                // 1st visit: push operator onto stack and mark it as visited,
+                // then push its operands in reverse onto the stack
                 Group::Operator(operator, operands) if !visited => {
-                    let condition = Group::Operator(operator, Vec::new());
-                    input.push((condition, true, operands.len()));
+                    let group = Group::Operator(operator, Vec::default());
+                    input.push((group, true, operands.len()));
 
-                    // Push children in reverse onto stack
-                    for condition in operands.into_iter().rev() {
-                        input.push((condition, false, 0));
+                    // Push operands in reverse onto stack
+                    for group in operands.into_iter().rev() {
+                        input.push((group, false, 0));
                     }
                 }
-                // 2nd visit: pop exactly as many children as the condition
-                // expects from the stack and process the condition
+                // 2nd visit: pop exactly as many operands as the operator
+                // expects from the stack and transform it with the function
                 Group::Operator(operator, ..) => {
                     let operands = stack.split_off(stack.len() - arity);
                     stack.push(f(Group::Operator(operator, operands)));
                 }
                 // Push terms onto stack for processing
                 Group::Terms(_) if !visited => {
-                    stack.push(f(condition));
+                    stack.push(f(group));
                 }
                 // This should never happen
                 Group::Terms(_) => unreachable!(),
             }
         }
 
-        // Return the top-most processed condition
+        // Return the top-most processed group
         stack.pop().expect("invariant")
     }
 }

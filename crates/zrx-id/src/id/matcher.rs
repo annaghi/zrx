@@ -46,18 +46,12 @@ pub use matches::Matches;
 
 /// Matcher.
 ///
-/// The [`Matcher`] provides efficient [`Selector`][] matching of identifiers
-/// by leveraging the [`globset`] crate. Matchers can be built from arbitrary
-/// numbers of selectors, which are then combined into a single [`GlobSet`][]
-/// for each of the six components.
-///
-/// [`GlobSet`][] implements matching with deterministic finite automata (DFA),
-/// which allow for efficient matching of multiple selectors against a single
-/// identifier in linear time in relation to the length of the input string,
-/// and which return the set of matched selectors.
+/// Matchers provide efficient matching of identifiers against an arbitrary set
+/// of selectors in linear time, implemented through the use of the [`globset`]
+/// crate, which compiles globs into deterministic finite automata (DFA). Each
+/// [`Component`] of the matcher receives its own distinct [`GlobSet`][].
 ///
 /// [`GlobSet`]: globset::GlobSet
-/// [`Selector`]: crate::id::matcher::selector::Selector
 ///
 /// # Examples
 ///

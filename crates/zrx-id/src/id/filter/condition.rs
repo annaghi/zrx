@@ -43,8 +43,8 @@ pub use instruction::Instruction;
 ///
 /// Conditions are compiled and optimized expressions, which are converted into
 /// postfix notation - also known as reverse polish notation (RPN) - for very
-/// efficient and fast matching against a set of extracted terms. They are
-/// merely an internal construct and not exported via the public API.
+/// efficient and fast matching against a set of extracted terms. Conditions
+/// are an internal construct and not exported via the public API.
 ///
 /// Note that conditions may be marked as "universal", indicating that they
 /// contain at least one logical `NOT` operator that might match everything.
@@ -68,12 +68,12 @@ impl Condition {
     /// This method evaluates the underlying instructions in postfix notation -
     /// also known as reverse polish notation (RPN) – against the provided set
     /// of matches. It leverages a bitwise stack to keep track of intermediate
-    /// results, allowing for efficient evaluation of logical expressions.
+    /// results, allowing for efficient evaluation of logical operators.
     ///
     /// Note that this method assumes that there're never more than 64 terms
     /// on the stack. Although this might theoretically happen, it practically
-    /// never should, since conditions are expected to go through optimization,
-    /// which combines all terms into a single instance of [`Matches`].
+    /// never should, since conditions are going through optimization, which
+    /// combines all term operands into a single instance of [`Matches`].
     #[allow(clippy::match_same_arms)]
     #[must_use]
     pub fn satisfies(&self, matches: &Matches) -> bool {
@@ -111,8 +111,8 @@ impl Condition {
             }
         }
 
-        // At the end, there should be exactly one value left on the stack,
-        // which represents the result of the entire condition evaluation
+        // At the end, there must be exactly one value left on the stack,
+        // representing the result of the entire condition evaluation
         stack == 1
     }
 }

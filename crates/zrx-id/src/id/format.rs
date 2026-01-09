@@ -130,6 +130,7 @@ impl<const N: usize> Format<N> {
     /// # Ok(())
     /// # }
     /// ```
+    #[inline]
     #[must_use]
     pub fn to_builder(&self) -> Builder<'_, N> {
         Builder::from(self)
