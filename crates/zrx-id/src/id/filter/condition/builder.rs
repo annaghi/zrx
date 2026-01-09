@@ -58,6 +58,8 @@ impl Condition {
     /// transformed into a [`Condition`], which is used in a [`Filter`][].
     ///
     /// [`Filter`]: crate::id::filter::Filter
+    #[inline]
+    #[must_use]
     pub fn builder<T>(expr: T) -> Builder
     where
         T: IntoExpression,
@@ -81,7 +83,7 @@ impl Builder {
         // Process stack with condition groups until empty, transforming groups
         // into instructions in reverse postfix notation. Note that we have to
         // keep track of the operator for term groups, as we need it for the
-        // compare instructions we need to create.
+        // compare instructions we're about to create.
         while let Some((group, operator)) = input.pop() {
             match group {
                 // Emit combine instruction, and put all operands onto the
@@ -94,8 +96,8 @@ impl Builder {
                 }
                 // Emit compare instruction to compare terms against matches,
                 // and fall back to the logical `OR` operator if none is given
-                // Note that this might happen when the condition is a single
-                // set of terms without any operator.
+                // Note that this might happen when the condition consists of
+                // a single set of terms without an operator.
                 Group::Terms(terms) => {
                     stack.push(Instruction::Compare(
                         operator.unwrap_or(Operator::Any),
@@ -126,7 +128,7 @@ impl Builder {
     /// Optimizes the condition builder.
     ///
     /// It's important to optimize the condition before building it, as it
-    /// can reduce the number of instructions to oimprove performance.
+    /// can reduce the number of instructions to improve performance.
     #[inline]
     #[must_use]
     pub fn optimize(self) -> Self {
@@ -143,7 +145,7 @@ impl Builder {
 
 /// Recursively compiles an expression into a condition group, and collects
 /// all terms along the way. Note that the terms are stored in post-order, so
-/// as the returned condition group references them by index. This is essential
+/// the returned condition group can reference them by index. This is essential
 /// for efficient storage and evaluation.
 fn compile(expr: Expression, terms: &mut Vec<Term>) -> Group {
     let operator = expr.operator();
@@ -165,12 +167,12 @@ fn compile(expr: Expression, terms: &mut Vec<Term>) -> Group {
 // ----------------------------------------------------------------------------
 
 /// Optimizes a condition group, trying to combine operators and terms without
-/// changing the semantics - note that this happens in different stages.
+/// changing the semantics - note that this happens in several stages.
 fn optimize(group: Group) -> Group {
     let group = group.map(optimize_operators);
     let group = group.map(optimize_terms);
 
-    // Try to hoist top-level any
+    // Try to hoist top-level logical `OR` operator
     optimize_hoistable(group)
 }
 
@@ -192,7 +194,7 @@ fn optimize_operators(group: Group) -> Group {
     Group::Operator(outer, iter.collect())
 }
 
-/// Optimizes adjacent terms that are children of the current group, combining
+/// Optimizes adjacent terms that are operands of the current group, combining
 /// them into a single match set for efficient and optimized parallel matching.
 fn optimize_terms(group: Group) -> Group {
     let Group::Operator(operator, operands) = group else {
@@ -225,8 +227,8 @@ fn optimize_terms(group: Group) -> Group {
     Group::Operator(operator, optimized)
 }
 
-/// Optimizes hoistable top-level groups, e.g., an `ANY` with a single operand.
-/// This is only applied at the top-level of the condition, not recursively.
+/// Optimizes hoistable top-level groups, e.g., a logical `OR` operator with a
+/// single operand. This is only applied at the top-level of the condition.
 fn optimize_hoistable(group: Group) -> Group {
     match group {
         Group::Operator(Operator::Any, mut operands) if operands.len() == 1 => {
