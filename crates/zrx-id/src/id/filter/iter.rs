@@ -25,6 +25,7 @@
 
 //! Iterator over filter.
 
+use slab::Slab;
 use std::iter::Peekable;
 
 use crate::id::matcher::matches::IntoIter;
@@ -43,10 +44,14 @@ use super::Filter;
 pub struct Iter<'a> {
     /// Iterator over matches.
     matches: Peekable<IntoIter>,
-    /// Iterator over conditions.
-    conditions: slab::Iter<'a, Condition>,
-    /// Current condition index.
-    index: usize,
+    /// Condition set, built from expressions.
+    conditions: &'a Slab<Condition>,
+    /// Condition indices of negations.
+    negations: &'a [u32],
+    /// Condition term mappings.
+    mapping: &'a [u32],
+    /// Match set used during iteration.
+    workset: Matches,
 }
 
 // ----------------------------------------------------------------------------
@@ -54,7 +59,7 @@ pub struct Iter<'a> {
 // ----------------------------------------------------------------------------
 
 impl Filter {
-    /// Returns the indices of expressions that match the filter.
+    /// Returns the indices of expressions that match the identifier.
     ///
     /// This method compares all expressions within the filter against the given
     /// identifier, and returns an iterator over the indices of the expressions
@@ -100,8 +105,10 @@ impl Filter {
         let matches = self.matcher.matches(id)?;
         Ok(Iter {
             matches: matches.into_iter().peekable(),
-            conditions: self.conditions.iter(),
-            index: 0,
+            conditions: &self.conditions,
+            negations: &self.negations,
+            mapping: &self.mapping,
+            workset: Matches::default(),
         })
     }
 }
@@ -115,29 +122,199 @@ impl Iterator for Iter<'_> {
 
     /// Returns the next satisfied condition.
     fn next(&mut self) -> Option<Self::Item> {
-        let mut matches = Matches::default();
+        loop {
+            self.workset.clear();
 
-        // Obtain next condition and check for matches
-        for (index, condition) in self.conditions.by_ref() {
-            let end = self.index + condition.terms().len();
+            // Retrieve the next match without consuming it, as we must first
+            // check if there're any conditions with negations that we need to
+            // process first, or whether the current match lies exactly within
+            // one of those negations
+            let opt = self.matches.peek().copied();
 
-            // Collect all matches for the current condition
-            while self.matches.peek().is_some_and(|&index| index < end) {
-                let index = self.matches.next().expect("invariant");
-                matches.insert(index - self.index);
+            // Retrieve the index of the current condition for processing - if
+            // there's a match within the match set, use that to check if we
+            // should process the condition the match is a part of, or the
+            // next condition with a negation
+            let check = if let Some(start) = opt {
+                let index = self.mapping[start];
+
+                // Either chose the current condition, or the condition that
+                // needs to be checked despite of any matches being present
+                let opt = self.negations.first().copied();
+                opt.filter(|&first| first <= index).map_or(index, |first| {
+                    self.negations = &self.negations[1..];
+                    first
+                })
+
+            // No more matches - in this case we need to process all remaining
+            // conditions that contain negations
+            } else if let Some(&first) = self.negations.first() {
+                self.negations = &self.negations[1..];
+                first
+
+            // No more conditions to check
+            } else {
+                return None;
+            };
+
+            // If there're matches, consume all matches that belong to the
+            // condition, and insert them into the working set of matches
+            if let Some(mut start) = opt {
+                // Do a backwards scan on the terms to find the index of the
+                // first term for the condition, to correctly assign matches
+                while start > 0 && self.mapping[start - 1] == check {
+                    start -= 1;
+                }
+
+                // Next, consume all matches for the current condition, and
+                // add them to the working set of matches
+                while let Some(index) =
+                    self.matches.next_if(|&index| self.mapping[index] == check)
+                {
+                    self.workset.insert(index - start);
+                }
             }
 
-            // Advance index to the end of the current condition
-            self.index = end;
-
-            // Verify if condition is satisfied and return it
-            let check = condition.is_universal() || !matches.is_empty();
-            if check && condition.satisfies(&matches) {
+            // After consuming all matches for this condition, check whether
+            // it is satisfied - if not, continue with the next condition
+            let index = check as usize;
+            if self.conditions[index].satisfies(&self.workset) {
                 return Some(index);
             }
         }
+    }
+}
 
-        // No more satisfied conditions to return
-        None
+// ----------------------------------------------------------------------------
+// Tests
+// ----------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+
+    mod matches {
+        use crate::id::filter::{Expression, Filter, Result};
+        use crate::selector;
+
+        #[test]
+        fn handles_any() -> Result {
+            let mut builder = Filter::builder();
+            let _ = builder.insert(Expression::any(|expr| {
+                expr.with(selector!(location = "**/*.png")?)?
+                    .with(selector!(location = "**/*.jpg")?)
+            })?);
+            let filter = builder.build()?;
+            for (id, check) in [
+                ("zri:file:::docs:image.png:", vec![0]),
+                ("zri:file:::docs:image.jpg:", vec![0]),
+                ("zri:file:::docs:image.gif:", vec![]),
+            ] {
+                assert_eq!(
+                    filter.matches(&id)?.collect::<Vec<_>>(), // fmt
+                    check
+                );
+            }
+            Ok(())
+        }
+
+        #[test]
+        fn handles_all() -> Result {
+            let mut builder = Filter::builder();
+            let _ = builder.insert(Expression::all(|expr| {
+                expr.with(selector!(location = "**/*.md")?)?
+                    .with(selector!(provider = "file")?)
+            })?);
+            let filter = builder.build()?;
+            for (id, check) in [
+                ("zri:file:::docs:index.md:", vec![0]),
+                ("zri:file:::docs:image.png:", vec![]),
+                ("zri:git:::docs:image.md:", vec![]),
+            ] {
+                assert_eq!(
+                    filter.matches(&id)?.collect::<Vec<_>>(), // fmt
+                    check
+                );
+            }
+            Ok(())
+        }
+
+        #[test]
+        fn handles_not() -> Result {
+            let mut builder = Filter::builder();
+            let _ = builder.insert(Expression::not(|expr| {
+                expr.with(selector!(location = "**/*.png")?)?
+                    .with(selector!(location = "**/*.jpg")?)
+            })?);
+            let filter = builder.build()?;
+            for (id, check) in [
+                ("zri:file:::docs:index.md:", vec![0]),
+                ("zri:file:::docs:image.png:", vec![]),
+                ("zri:file:::docs:image.jpg:", vec![]),
+            ] {
+                assert_eq!(
+                    filter.matches(&id)?.collect::<Vec<_>>(), // fmt
+                    check
+                );
+            }
+            Ok(())
+        }
+
+        #[test]
+        fn handles_all_any() -> Result {
+            let mut builder = Filter::builder();
+            let _ = builder.insert(Expression::all(|expr| {
+                expr.with(selector!(provider = "file")?)?
+                    .with(Expression::any(|expr| {
+                        expr.with(selector!(location = "**/*.png")?)?
+                            .with(selector!(location = "**/*.jpg")?)
+                    }))
+            })?);
+            let filter = builder.build()?;
+            for (id, check) in [
+                ("zri:file:::docs:index.md:", vec![]),
+                ("zri:file:::docs:image.png:", vec![0]),
+                ("zri:file:::docs:image.jpg:", vec![0]),
+                ("zri:file:::docs:image.gif:", vec![]),
+                ("zri:git:::docs:image.png:", vec![]),
+                ("zri:git:::docs:image.jpg:", vec![]),
+            ] {
+                assert_eq!(
+                    filter.matches(&id)?.collect::<Vec<_>>(), // fmt
+                    check
+                );
+            }
+            Ok(())
+        }
+
+        #[test]
+        fn handles_all_any_not() -> Result {
+            let mut builder = Filter::builder();
+            let _ = builder.insert(Expression::all(|expr| {
+                expr.with(selector!(provider = "file")?)?
+                    .with(Expression::any(|expr| {
+                        expr.with(selector!(context = "docs")?)? // fmt
+                            .with(Expression::not(|expr| {
+                                expr.with(selector!(location = "**/*.png")?)?
+                                    .with(selector!(location = "**/*.jpg")?)
+                            }),
+                        )
+                    }))
+            })?);
+            let filter = builder.build()?;
+            for (id, check) in [
+                ("zri:file:::docs:index.md:", vec![0]),
+                ("zri:file:::docs:image.png:", vec![0]),
+                ("zri:file:::docs:image.jpg:", vec![0]),
+                ("zri:file:::docs:image.gif:", vec![0]),
+                ("zri:git:::docs:image.png:", vec![]),
+                ("zri:git:::docs:image.jpg:", vec![]),
+            ] {
+                assert_eq!(
+                    filter.matches(&id)?.collect::<Vec<_>>(), // fmt
+                    check
+                );
+            }
+            Ok(())
+        }
     }
 }

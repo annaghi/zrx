@@ -30,6 +30,8 @@ use thiserror::Error;
 
 use crate::id::matcher;
 
+use super::expression;
+
 // ----------------------------------------------------------------------------
 // Enums
 // ----------------------------------------------------------------------------
@@ -37,6 +39,10 @@ use crate::id::matcher;
 /// Filter error.
 #[derive(Debug, Error)]
 pub enum Error {
+    /// Expression error.
+    #[error(transparent)]
+    Expression(#[from] expression::Error),
+
     /// Matcher error.
     #[error(transparent)]
     Matcher(#[from] matcher::Error),

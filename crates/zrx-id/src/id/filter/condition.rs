@@ -44,16 +44,11 @@ pub use instruction::Instruction;
 /// Conditions are compiled and optimized expressions, which are converted into
 /// postfix notation - also known as reverse polish notation (RPN) - for very
 /// efficient and fast matching against a set of extracted terms. Conditions
-/// are an internal construct and not exported via the public API.
-///
-/// Note that conditions may be marked as "universal", indicating that they
-/// contain at least one logical `NOT` operator that might match everything.
+/// are an internal construct and not exported via the public interface.
 #[derive(Debug)]
 pub struct Condition {
     /// Instructions in postfix notation.
     instructions: Box<[Instruction]>,
-    /// Whether there are any negations.
-    is_universal: bool,
     /// Extracted terms.
     terms: Box<[Term]>,
 }
@@ -119,10 +114,10 @@ impl Condition {
 
 #[allow(clippy::must_use_candidate)]
 impl Condition {
-    /// Returns whether there are any negations.
+    /// Returns the instructions in postfix notation.
     #[inline]
-    pub fn is_universal(&self) -> bool {
-        self.is_universal
+    pub fn instructions(&self) -> &[Instruction] {
+        &self.instructions
     }
 
     /// Returns the extracted terms.
@@ -188,7 +183,7 @@ mod tests {
         #[test]
         fn handles_all() -> Result {
             let expr = Expression::all(|expr| {
-                expr.with(selector!(location = "**/*.png")?)?
+                expr.with(selector!(location = "**/*.md")?)?
                     .with(selector!(provider = "file")?)
             })?;
             let condition = Condition::builder(expr).build();
@@ -208,7 +203,7 @@ mod tests {
         #[test]
         fn handles_all_optimized() -> Result {
             let expr = Expression::all(|expr| {
-                expr.with(selector!(location = "**/*.png")?)?
+                expr.with(selector!(location = "**/*.md")?)?
                     .with(selector!(provider = "file")?)
             })?;
             let condition = Condition::builder(expr).optimize().build();

@@ -79,6 +79,10 @@ pub use expression::Expression;
 pub struct Filter {
     /// Condition set, built from expressions.
     conditions: Slab<Condition>,
+    /// Condition indices of negations.
+    negations: Vec<u32>,
+    /// Condition term mappings.
+    mapping: Vec<u32>,
     /// Extracted terms.
     matcher: Matcher,
 }
