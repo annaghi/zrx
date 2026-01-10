@@ -39,6 +39,7 @@ pub use builder::Builder;
 use condition::Condition;
 pub use error::{Error, Result};
 pub use expression::{Expression, IntoExpression};
+pub use iter::Iter;
 
 // ----------------------------------------------------------------------------
 // Structs
