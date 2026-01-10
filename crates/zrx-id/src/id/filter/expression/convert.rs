@@ -33,6 +33,12 @@ use super::Expression;
 // ----------------------------------------------------------------------------
 
 /// Conversion into [`Expression`].
+///
+/// This trait is intended for methods that expect an [`Expression`], but want
+/// to allow directly passing instances of [`Id`][] and [`Selector`][] as well.
+///
+/// [`Id`]: crate::id::Id
+/// [`Selector`]: crate::id::matcher::selector::Selector
 pub trait IntoExpression {
     /// Convert into an expression.
     fn into_expression(self) -> Expression;

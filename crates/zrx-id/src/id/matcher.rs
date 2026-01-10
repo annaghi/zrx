@@ -51,6 +51,14 @@ pub use matches::Matches;
 /// crate, which compiles globs into deterministic finite automata (DFA). Each
 /// [`Component`] of the matcher receives its own distinct [`GlobSet`][].
 ///
+/// While components are matched one after another, all registered identifiers
+/// in a [`Component`] are matched in linear time, i.e., O(n), where n is the
+/// length of the component value. The [`Matches`] returned by each component
+/// are intersected, leaving only selectors that match all components. There
+/// are theoretical limits on the number of selectors that can be added to a
+/// [`Component`], so it can be necessary to split across multiple matchers if
+/// the number of selectors is high, i.e., 10,000 or more.
+///
 /// [`GlobSet`]: globset::GlobSet
 ///
 /// # Examples

@@ -48,13 +48,13 @@ pub enum Group {
 impl Group {
     /// Transforms a condition group in post-order with the given function.
     ///
-    /// This method traverses the condition group in post-order, and allows to
-    /// map each node with the provided function. The function is applied after
-    /// mapping the child nodes, so a condition group can be rewritten from the
-    /// bottom up, e.g., to optimize or transform the condition group.
+    /// This method traverses the condition group in post-order, and maps each
+    /// group to a new group by applying the provided function. Operators are
+    /// processed after all of their operands have been transformed, so that
+    /// groups can be rewritten from the bottom up, e.g., for optimization.
     ///
-    /// This implementation deliberately uses an explicit stack, because the
-    /// Rust compiler will run into stack overflows for deep recursion.
+    /// This implementation deliberately uses a stack over recursion, because
+    /// the Rust compiler will run into stack overflows for deep recursion.
     #[allow(clippy::missing_panics_doc)]
     #[must_use]
     pub fn map<F>(self, mut f: F) -> Self

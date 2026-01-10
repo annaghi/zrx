@@ -47,10 +47,18 @@ pub use iter::Iter;
 
 /// Filter.
 ///
-/// Filters allow to efficiently match identifiers against a set of expressions,
-/// which are composed of conditions and logical operators, and compiled into a
-/// set of optimized instructions for matching. This allows to evaluate complex
-/// logical expressions against identifiers extremely fast.
+/// Filters efficiently match identifiers against a set of expressions, which
+/// are composed of conditions and logical operators, and compiled into a set
+/// of optimized instructions. This makes it possible to evaluate arbitrarily
+/// complex logical expressions against identifiers extremely fast.
+///
+/// Each [`Filter`] contains a [`Matcher`], used to identify matching terms in
+/// expressions in nanoseconds, and a set of conditions built from expressions,
+/// which are checked for satisfiability by using a bitwise stack-based virtual
+/// machine with an optimized set of instructions. Thus, the [`Matcher`] can be
+/// thought of as the first stage, eliminating non-matching identifiers, while
+/// the condition set is the second stage, which performs the actual logical
+/// evaluation of all candidate expressions.
 ///
 /// # Examples
 ///

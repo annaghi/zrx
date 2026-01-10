@@ -41,10 +41,10 @@ pub use instruction::Instruction;
 
 /// Condition.
 ///
-/// Conditions are compiled and optimized expressions, which are converted into
-/// postfix notation - also known as reverse polish notation (RPN) - for very
-/// efficient and fast matching against a set of extracted terms. Conditions
-/// are an internal construct and not exported via the public interface.
+/// Conditions are compiled and optimized expressions, converted into postfix
+/// notation - also known as reverse polish notation (RPN) - for very efficient
+/// and fast matching against a set of extracted terms. Conditions are an
+/// internal construct and not exported via the public interface.
 #[derive(Debug)]
 pub struct Condition {
     /// Instructions in postfix notation.

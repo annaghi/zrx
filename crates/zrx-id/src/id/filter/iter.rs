@@ -134,7 +134,7 @@ impl Iterator for Iter<'_> {
             // Retrieve the index of the current condition for processing - if
             // there's a match within the match set, use that to check if we
             // should process the condition the match is a part of, or the
-            // next condition with a negation
+            // next condition with a negation first
             let check = if let Some(start) = opt {
                 let index = self.mapping[start];
 
