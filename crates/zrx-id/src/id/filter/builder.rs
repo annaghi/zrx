@@ -126,7 +126,6 @@ impl Builder {
     /// # }
     /// ```
     #[inline]
-    #[must_use]
     pub fn insert<T>(&mut self, expr: T) -> usize
     where
         T: IntoExpression,
