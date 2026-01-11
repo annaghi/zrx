@@ -276,6 +276,34 @@ impl TryFrom<Id> for Selector {
     }
 }
 
+impl TryFrom<Term> for Selector {
+    type Error = Error;
+
+    /// Attempts to create a selector from a term.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::error::Error;
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// use zrx_id::filter::Term;
+    /// use zrx_id::{Id, Selector};
+    ///
+    /// // Create selector from identifier
+    /// let id: Id = "zri:file:::docs:index.md:".parse()?;
+    /// let selector: Selector = Term::from(id).try_into()?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[inline]
+    fn try_from(term: Term) -> Result<Self> {
+        match term {
+            Term::Id(id) => id.try_into(),
+            Term::Selector(selector) => Ok(selector),
+        }
+    }
+}
+
 // ----------------------------------------------------------------------------
 
 impl Hash for Selector {
