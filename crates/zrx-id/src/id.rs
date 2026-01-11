@@ -77,7 +77,9 @@ use uri::Uri;
 /// ```
 ///
 /// This ensures blazing fast cloning and editing. Additionally, identifiers are
-/// guaranteed to not contain backslashes or path traversals in components.
+/// guaranteed to not contain backslashes or path traversals in components. An
+/// empty component, for those that are allowed to remain empty, is equal to the
+/// default in the context set by the given provider.
 ///
 /// # Examples
 ///

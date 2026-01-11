@@ -65,7 +65,9 @@ pub use convert::TryIntoSelector;
 /// ```
 ///
 /// This ensures blazing fast cloning and editing. Additionally, selectors are
-/// guaranteed to not contain backslashes or path traversals in components.
+/// guaranteed to not contain backslashes or path traversals in components. An
+/// empty component is interpreted as a wildcard, and thus matches all values
+/// in that component for any given selector.
 ///
 /// [`Matcher`]: crate::id::matcher::Matcher
 ///
