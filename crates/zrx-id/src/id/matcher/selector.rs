@@ -104,7 +104,7 @@ pub use convert::TryIntoSelector;
 /// # Ok(())
 /// # }
 /// ```
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, PartialOrd, Ord)]
 pub struct Selector {
     /// Formatted string.
     format: Arc<Format<7>>,
@@ -242,6 +242,11 @@ impl TryFrom<Id> for Selector {
 
     /// Attempts to create a selector from an identifier.
     ///
+    /// An [`Id`] can be converted into a [`Selector`] because all identifiers
+    /// are also valid selectors, as they represent exact matches. However, the
+    /// reverse is not true, as selectors can contain wildcards, as well as
+    /// optional components, which identifiers cannot.
+    ///
     /// # Examples
     ///
     /// ```
@@ -288,6 +293,33 @@ impl Hash for Selector {
         state.write_u64(self.hash);
     }
 }
+
+// ----------------------------------------------------------------------------
+
+impl PartialEq for Selector {
+    /// Compares two selectors for equality.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::error::Error;
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// use zrx_id::Selector;
+    ///
+    /// // Create and compare selectors
+    /// let a: Selector = "zrs:::::**/*.md:".parse()?;
+    /// let b: Selector = "zrs:::::**/*.md:".parse()?;
+    /// assert_eq!(a, b);
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.hash == other.hash
+    }
+}
+
+impl Eq for Selector {}
 
 // ----------------------------------------------------------------------------
 
