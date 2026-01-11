@@ -30,16 +30,18 @@ use slab::Slab;
 use super::matcher::Matcher;
 
 mod builder;
+mod candidates;
 mod condition;
 mod error;
 pub mod expression;
-mod iter;
+mod terms;
 
 pub use builder::Builder;
+pub use candidates::Candidates;
 use condition::Condition;
 pub use error::{Error, Result};
-pub use expression::{Expression, IntoExpression};
-pub use iter::Iter;
+pub use expression::{Expression, IntoExpression, Term};
+pub use terms::Terms;
 
 // ----------------------------------------------------------------------------
 // Structs
@@ -52,13 +54,13 @@ pub use iter::Iter;
 /// of optimized instructions. This makes it possible to evaluate arbitrarily
 /// complex logical expressions against identifiers extremely fast.
 ///
-/// Each [`Filter`] contains a [`Matcher`], used to identify matching terms in
+/// Each [`Filter`] manages a [`Matcher`], used to identify matching terms in
 /// expressions in nanoseconds, and a set of conditions built from expressions,
 /// which are checked for satisfiability by using a bitwise stack-based virtual
 /// machine with an optimized set of instructions. Thus, the [`Matcher`] can be
-/// thought of as the first stage, eliminating non-matching identifiers, while
-/// the condition set is the second stage, which performs the actual logical
-/// evaluation of all candidate expressions.
+/// thought of as the first stage, eliminating non-matching expressions, while
+/// the condition set is the second stage, which checks whether the remaining
+/// expressions are actually satisfied by the identifier.
 ///
 /// # Examples
 ///
@@ -77,9 +79,9 @@ pub use iter::Iter;
 /// // Create filter from builder
 /// let filter = builder.build()?;
 ///
-/// // Create identifier and match expressions
+/// // Create identifier and obtain candidate expressions
 /// let id: Id = "zri:file:::docs:index.md:".parse()?;
-/// for index in filter.matches(&id)? {
+/// for index in filter.candidates(&id)? {
 ///     println!("{index:?}");
 /// }
 /// # Ok(())

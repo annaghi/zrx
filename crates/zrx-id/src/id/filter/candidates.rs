@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Iterator over filter.
+//! Iterator over candidates.
 
 use slab::Slab;
 use std::iter::Peekable;
@@ -40,8 +40,8 @@ use super::Filter;
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Iterator over filter.
-pub struct Iter<'a> {
+/// Iterator over candidates.
+pub struct Candidates<'a> {
     /// Iterator over matches.
     matches: Peekable<IntoIter>,
     /// Condition set, built from expressions.
@@ -61,7 +61,7 @@ pub struct Iter<'a> {
 impl Filter {
     /// Returns the indices of expressions that match the identifier.
     ///
-    /// This method compares all expressions within the filter against the given
+    /// This method compares expressions part of the filter against the given
     /// identifier, and returns an iterator over the indices of the expressions
     /// that match. Note that the order of the returned indices corresponds to
     /// the order in which the expressions were added to the filter.
@@ -89,21 +89,21 @@ impl Filter {
     /// // Create filter from builder
     /// let filter = builder.build()?;
     ///
-    /// // Create identifier and match expressions
+    /// // Create identifier and obtain candidate expressions
     /// let id: Id = "zri:file:::docs:index.md:".parse()?;
-    /// for index in filter.matches(&id)? {
+    /// for index in filter.candidates(&id)? {
     ///     println!("{index:?}");
     /// }
     /// # Ok(())
     /// # }
     /// ```
     #[inline]
-    pub fn matches<T>(&self, id: &T) -> Result<Iter<'_>>
+    pub fn candidates<T>(&self, id: &T) -> Result<Candidates<'_>>
     where
         T: TryIntoId,
     {
         let matches = self.matcher.matches(id)?;
-        Ok(Iter {
+        Ok(Candidates {
             matches: matches.into_iter().peekable(),
             conditions: &self.conditions,
             negations: &self.negations,
@@ -117,10 +117,10 @@ impl Filter {
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl Iterator for Iter<'_> {
+impl Iterator for Candidates<'_> {
     type Item = usize;
 
-    /// Returns the next satisfied condition.
+    /// Returns the next candidate.
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             self.workset.clear();
@@ -210,7 +210,7 @@ mod tests {
                 ("zri:file:::docs:image.gif:", vec![]),
             ] {
                 assert_eq!(
-                    filter.matches(&id)?.collect::<Vec<_>>(), // fmt
+                    filter.candidates(&id)?.collect::<Vec<_>>(), // fmt
                     check
                 );
             }
@@ -231,7 +231,7 @@ mod tests {
                 ("zri:git:::docs:image.md:", vec![]),
             ] {
                 assert_eq!(
-                    filter.matches(&id)?.collect::<Vec<_>>(), // fmt
+                    filter.candidates(&id)?.collect::<Vec<_>>(), // fmt
                     check
                 );
             }
@@ -252,7 +252,7 @@ mod tests {
                 ("zri:file:::docs:image.jpg:", vec![]),
             ] {
                 assert_eq!(
-                    filter.matches(&id)?.collect::<Vec<_>>(), // fmt
+                    filter.candidates(&id)?.collect::<Vec<_>>(), // fmt
                     check
                 );
             }
@@ -279,7 +279,7 @@ mod tests {
                 ("zri:git:::docs:image.jpg:", vec![]),
             ] {
                 assert_eq!(
-                    filter.matches(&id)?.collect::<Vec<_>>(), // fmt
+                    filter.candidates(&id)?.collect::<Vec<_>>(), // fmt
                     check
                 );
             }
@@ -310,7 +310,7 @@ mod tests {
                 ("zri:git:::docs:image.jpg:", vec![]),
             ] {
                 assert_eq!(
-                    filter.matches(&id)?.collect::<Vec<_>>(), // fmt
+                    filter.candidates(&id)?.collect::<Vec<_>>(), // fmt
                     check
                 );
             }

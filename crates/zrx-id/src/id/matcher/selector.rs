@@ -31,6 +31,7 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 use std::str::FromStr;
 use std::sync::Arc;
 
+use crate::id::filter::Term;
 use crate::id::format::Format;
 use crate::id::{Error, Id, Result};
 
@@ -65,7 +66,9 @@ pub use convert::TryIntoSelector;
 /// ```
 ///
 /// This ensures blazing fast cloning and editing. Additionally, selectors are
-/// guaranteed to not contain backslashes or path traversals in components.
+/// guaranteed to not contain backslashes or path traversals in components. An
+/// empty component is interpreted as a wildcard, and thus matches all values
+/// in that component for any given selector.
 ///
 /// [`Matcher`]: crate::id::matcher::Matcher
 ///
@@ -101,7 +104,7 @@ pub use convert::TryIntoSelector;
 /// # Ok(())
 /// # }
 /// ```
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, PartialOrd, Ord)]
 pub struct Selector {
     /// Formatted string.
     format: Arc<Format<7>>,
@@ -239,6 +242,11 @@ impl TryFrom<Id> for Selector {
 
     /// Attempts to create a selector from an identifier.
     ///
+    /// An [`Id`] can be converted into a [`Selector`] because all identifiers
+    /// are also valid selectors, as they represent exact matches. However, the
+    /// reverse is not true, as selectors can contain wildcards, as well as
+    /// optional components, which identifiers cannot.
+    ///
     /// # Examples
     ///
     /// ```
@@ -268,6 +276,34 @@ impl TryFrom<Id> for Selector {
     }
 }
 
+impl TryFrom<Term> for Selector {
+    type Error = Error;
+
+    /// Attempts to create a selector from a term.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::error::Error;
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// use zrx_id::filter::Term;
+    /// use zrx_id::{Id, Selector};
+    ///
+    /// // Create selector from identifier
+    /// let id: Id = "zri:file:::docs:index.md:".parse()?;
+    /// let selector: Selector = Term::from(id).try_into()?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[inline]
+    fn try_from(term: Term) -> Result<Self> {
+        match term {
+            Term::Id(id) => id.try_into(),
+            Term::Selector(selector) => Ok(selector),
+        }
+    }
+}
+
 // ----------------------------------------------------------------------------
 
 impl Hash for Selector {
@@ -285,6 +321,33 @@ impl Hash for Selector {
         state.write_u64(self.hash);
     }
 }
+
+// ----------------------------------------------------------------------------
+
+impl PartialEq for Selector {
+    /// Compares two selectors for equality.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::error::Error;
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// use zrx_id::Selector;
+    ///
+    /// // Create and compare selectors
+    /// let a: Selector = "zrs:::::**/*.md:".parse()?;
+    /// let b: Selector = "zrs:::::**/*.md:".parse()?;
+    /// assert_eq!(a, b);
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.hash == other.hash
+    }
+}
+
+impl Eq for Selector {}
 
 // ----------------------------------------------------------------------------
 
