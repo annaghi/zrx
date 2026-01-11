@@ -31,6 +31,7 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 use std::str::FromStr;
 use std::sync::Arc;
 
+use crate::id::filter::Term;
 use crate::id::format::Format;
 use crate::id::{Error, Id, Result};
 

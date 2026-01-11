@@ -30,16 +30,18 @@ use slab::Slab;
 use super::matcher::Matcher;
 
 mod builder;
+mod candidates;
 mod condition;
 mod error;
 pub mod expression;
-mod iter;
+mod terms;
 
 pub use builder::Builder;
+pub use candidates::Candidates;
 use condition::Condition;
 pub use error::{Error, Result};
-pub use expression::{Expression, IntoExpression};
-pub use iter::Iter;
+pub use expression::{Expression, IntoExpression, Term};
+pub use terms::Terms;
 
 // ----------------------------------------------------------------------------
 // Structs
@@ -77,9 +79,9 @@ pub use iter::Iter;
 /// // Create filter from builder
 /// let filter = builder.build()?;
 ///
-/// // Create identifier and match expressions
+/// // Create identifier and obtain candidate expressions
 /// let id: Id = "zri:file:::docs:index.md:".parse()?;
-/// for index in filter.matches(&id)? {
+/// for index in filter.candidates(&id)? {
 ///     println!("{index:?}");
 /// }
 /// # Ok(())
