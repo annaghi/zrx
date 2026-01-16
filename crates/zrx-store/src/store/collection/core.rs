@@ -185,6 +185,31 @@ where
         HashMap::remove(self, key)
     }
 
+    /// Removes the value identified by the key and returns both.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::HashMap;
+    /// use zrx_store::StoreMut;
+    ///
+    /// // Create store and initial state
+    /// let mut store = HashMap::new();
+    /// store.insert("key", 42);
+    ///
+    /// // Remove and return entry
+    /// let entry = store.remove_entry(&"key");
+    /// assert_eq!(entry, Some(("key", 42)));
+    /// ```
+    #[inline]
+    fn remove_entry<Q>(&mut self, key: &Q) -> Option<(K, V)>
+    where
+        K: Borrow<Q>,
+        Q: Key,
+    {
+        HashMap::remove_entry(self, key)
+    }
+
     /// Clears the store, removing all items.
     ///
     /// # Examples
@@ -531,6 +556,31 @@ where
         Q: Key,
     {
         BTreeMap::remove(self, key)
+    }
+
+    /// Removes the value identified by the key and returns both.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::BTreeMap;
+    /// use zrx_store::StoreMut;
+    ///
+    /// // Create store and initial state
+    /// let mut store = BTreeMap::new();
+    /// store.insert("key", 42);
+    ///
+    /// // Remove and return entry
+    /// let entry = store.remove_entry(&"key");
+    /// assert_eq!(entry, Some(("key", 42)));
+    /// ```
+    #[inline]
+    fn remove_entry<Q>(&mut self, key: &Q) -> Option<(K, V)>
+    where
+        K: Borrow<Q>,
+        Q: Key,
+    {
+        BTreeMap::remove_entry(self, key)
     }
 
     /// Clears the store, removing all items.

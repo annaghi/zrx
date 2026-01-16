@@ -104,6 +104,7 @@ impl<K, V, S> StoreMut<K, V> for LiteMap<K, V, S>
 where
     K: Key,
     S: store::StoreMut<K, V>,
+    for<'a> S: store::StoreIterable<'a, K, V>,
 {
     /// Inserts the value identified by the key.
     ///
@@ -181,6 +182,40 @@ where
         Q: Key,
     {
         LiteMap::remove(self, key)
+    }
+
+    /// Removes the value identified by the key and returns both.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use litemap::LiteMap;
+    /// use zrx_store::StoreMut;
+    ///
+    /// // Create store and initial state
+    /// let mut store = LiteMap::new_vec();
+    /// store.insert("key", 42);
+    ///
+    /// // Remove and return entry
+    /// let entry = store.remove_entry(&"key");
+    /// assert_eq!(entry, Some(("key", 42)));
+    /// ```
+    #[inline]
+    fn remove_entry<Q>(&mut self, key: &Q) -> Option<(K, V)>
+    where
+        K: Borrow<Q>,
+        Q: Key,
+    {
+        let key = self.keys().find_map(|check| {
+            // Litemap doesn't have a direct way to remove the entire entry, so
+            // we must somehow first obtain the owned version of the key without
+            // making our trait bounds more complex. Thus, we accept that this
+            // requires a linear search through all keys.
+            (check.borrow() == key).then(|| check.clone())
+        })?;
+
+        // Now we can remove the entry using the owned key, and return both
+        LiteMap::remove(self, key.borrow()).map(|value| (key, value))
     }
 
     /// Clears the store, removing all items.
@@ -358,7 +393,7 @@ where
         K: 'a,
         V: 'a,
     {
-        LiteMap::iter(self).map(|(key, _)| key)
+        LiteMap::keys(self)
     }
 }
 
@@ -389,6 +424,6 @@ where
     where
         V: 'a,
     {
-        LiteMap::iter(self).map(|(_, value)| value)
+        LiteMap::values(self)
     }
 }

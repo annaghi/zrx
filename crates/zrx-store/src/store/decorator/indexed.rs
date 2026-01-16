@@ -553,6 +553,36 @@ where
         }
     }
 
+    /// Removes the value identified by the key and returns both.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_store::decorator::Indexed;
+    /// use zrx_store::StoreMut;
+    ///
+    /// // Create store and initial state
+    /// let mut store = Indexed::default();
+    /// store.insert("key", 42);
+    ///
+    /// // Remove and return entry
+    /// let entry = store.remove_entry(&"key");
+    /// assert_eq!(entry, Some(("key", 42)));
+    /// ```
+    #[inline]
+    fn remove_entry<Q>(&mut self, key: &Q) -> Option<(K, V)>
+    where
+        K: Borrow<Q>,
+        Q: Key,
+    {
+        if let Some(value) = self.store.get(key) {
+            let n = self.position(key, value).expect("invariant");
+            self.store.remove_entry(self.ordering.remove(n).borrow())
+        } else {
+            None
+        }
+    }
+
     /// Clears the store, removing all items.
     ///
     /// # Examples
