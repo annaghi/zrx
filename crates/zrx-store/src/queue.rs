@@ -383,6 +383,33 @@ where
             .map(|item| self.items.remove(*item.data()))
     }
 
+    /// Removes the value identified by the key and returns both.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_store::queue::Queue;
+    /// use zrx_store::StoreMut;
+    ///
+    /// // Create queue and initial state
+    /// let mut queue = Queue::default();
+    /// queue.insert("key", 42);
+    ///
+    /// // Remove and return entry
+    /// let entry = queue.remove_entry(&"key");
+    /// assert_eq!(entry, Some(("key", 42)));
+    /// ```
+    #[inline]
+    fn remove_entry<Q>(&mut self, key: &Q) -> Option<(K, V)>
+    where
+        K: Borrow<Q>,
+        Q: Key,
+    {
+        self.store
+            .remove_entry(key)
+            .map(|(key, item)| (key, self.items.remove(*item.data())))
+    }
+
     /// Clears the queue, removing all items.
     ///
     /// # Examples

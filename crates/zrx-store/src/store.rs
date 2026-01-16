@@ -44,12 +44,12 @@ pub use key::Key;
 /// Immutable store.
 ///
 /// This trait defines the required methods for an immutable key-value store,
-/// which can be used in operators to derive state from events. However, it is
+/// which can be used in operators to derive state from items. However, it is
 /// only a foundational trait for a set of traits that define complementary
 /// capabilities for stores, like [`StoreMut`] or [`StoreIterable`].
 ///
-/// There are several related traits, all of which can be composed in operator
-/// trait bounds to require specific store capabilities. These are:
+/// There are several related traits, all of which can be composed in trait
+/// bounds to require specific store capabilities. These are:
 ///
 /// - [`StoreMut`]: Mutable store
 /// - [`StoreMutRef`]: Mutable store that can return mutable references
@@ -151,6 +151,12 @@ where
 
     /// Removes the value identified by the key.
     fn remove<Q>(&mut self, key: &Q) -> Option<V>
+    where
+        K: Borrow<Q>,
+        Q: Key;
+
+    /// Removes the value identified by the key and returns both.
+    fn remove_entry<Q>(&mut self, key: &Q) -> Option<(K, V)>
     where
         K: Borrow<Q>,
         Q: Key;
