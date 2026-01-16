@@ -151,30 +151,6 @@ impl<const N: usize> Format<N> {
         }
     }
 
-    /// Creates an iterator over all components.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use std::error::Error;
-    /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// use zrx_id::format::Format;
-    ///
-    /// // Create formatted string from string
-    /// let format: Format::<3> = "a:b:c".parse()?;
-    ///
-    /// // Create iterator over components
-    /// for component in format.iter() {
-    ///     println!("{component:?}");
-    /// }
-    /// # Ok(())
-    /// # }
-    /// ```
-    #[inline]
-    pub fn iter(&self) -> impl Iterator<Item = Cow<'_, str>> {
-        (0..N).map(|index| self.get(index))
-    }
-
     /// Returns the string representation.
     ///
     /// # Examples
