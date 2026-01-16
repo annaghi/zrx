@@ -467,6 +467,11 @@ where
 
     /// Creates an iterator over the store.
     ///
+    /// This function will consume the store, and collect it into a vector, as
+    /// there's currently no way to implement this due to the absence of ATPIT
+    /// (associated type position impl trait) support in stable Rust. When the
+    /// feature is stabilized, we can switch to a more efficient approach.
+    ///
     /// # Examples
     ///
     /// ```
@@ -501,7 +506,7 @@ where
     K: Key,
     V: Ord,
 {
-    /// Creates a tracking decorator with [`HashMap::default`] as a store.
+    /// Creates a ordering decorator with [`HashMap::default`] as a store.
     ///
     /// Note that this method does not allow to customize the [`BuildHasher`][],
     /// but uses [`ahash`] by default, which is the fastest known hasher.
