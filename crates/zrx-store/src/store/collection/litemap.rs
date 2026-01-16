@@ -393,7 +393,7 @@ where
         K: 'a,
         V: 'a,
     {
-        LiteMap::iter(self).map(|(key, _)| key)
+        LiteMap::keys(self)
     }
 }
 
@@ -424,6 +424,6 @@ where
     where
         V: 'a,
     {
-        LiteMap::iter(self).map(|(_, value)| value)
+        LiteMap::values(self)
     }
 }
