@@ -41,7 +41,7 @@ use crate::store::{
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Indexing decorator, adding indexed access and range iteration.
+/// Indexing decorator, adding index and range access.
 ///
 /// Sometimes, it's useful to have an ordered index over a store, which allows
 /// to access values by their offset, as well as to iterate over the store in
@@ -865,7 +865,6 @@ where
 
 // ----------------------------------------------------------------------------
 
-#[allow(clippy::missing_fields_in_debug)]
 impl<K, V, S> fmt::Debug for Indexed<K, V, S>
 where
     K: Key + fmt::Debug,
@@ -876,6 +875,6 @@ where
         f.debug_struct("Indexed")
             .field("store", &self.store)
             .field("ordering", &self.ordering)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
