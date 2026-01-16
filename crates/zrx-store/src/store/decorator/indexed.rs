@@ -41,12 +41,12 @@ use crate::store::{
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Indexing decorator, adding indexed access and range iteration.
+/// Indexing decorator, adding index and range access.
 ///
 /// Sometimes, it's useful to have an ordered index over a store, which allows
 /// to access values by their offset, as well as to iterate over the store in
-/// an ordered fashion. This struct adds ordering to any [`Store`], since the
-/// the key is required to implement [`Ord`] anyway. The index doesn't implement
+/// an ordered fashion. This data type adds ordering to any [`Store`], because
+/// the key is required to implement [`Ord`] anyway. This store can't implement
 /// [`StoreMutRef`][], as it would allow the user to obtain mutable references
 /// to values, possibly invalidating the ordering. Instead, [`StoreMut`][] is
 /// implemented, so updating and removing values is supported, while ensuring
@@ -803,6 +803,11 @@ where
 
     /// Creates an iterator over the store.
     ///
+    /// This function will consume the store, and collect it into a vector, as
+    /// there's currently no way to implement this due to the absence of ATPIT
+    /// (associated type position impl trait) support in stable Rust. When the
+    /// feature is stabilized, we can switch to a more efficient approach.
+    ///
     /// # Examples
     ///
     /// ```
@@ -865,7 +870,6 @@ where
 
 // ----------------------------------------------------------------------------
 
-#[allow(clippy::missing_fields_in_debug)]
 impl<K, V, S> fmt::Debug for Indexed<K, V, S>
 where
     K: Key + fmt::Debug,
@@ -876,6 +880,6 @@ where
         f.debug_struct("Indexed")
             .field("store", &self.store)
             .field("ordering", &self.ordering)
-            .finish()
+            .finish_non_exhaustive()
     }
 }

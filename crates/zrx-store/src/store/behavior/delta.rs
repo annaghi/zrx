@@ -43,14 +43,14 @@ use crate::Key;
 /// from the iterator, so only the last instance from the iterator is persisted
 /// If inputs are not consolidated, deltas of items with duplicate keys may be
 /// yielded, which might lead to unnecessary computations.
-pub trait StoreDelta<I, A>
+pub trait StoreDelta<I, V>
 where
-    A: Eq,
+    V: Eq,
 {
     /// Updates the store and returns the changes as an iterator.
-    fn changes<T>(&mut self, iter: T) -> impl Iterator<Item = (I, Option<A>)>
+    fn changes<T>(&mut self, iter: T) -> impl Iterator<Item = (I, Option<V>)>
     where
-        T: IntoIterator<Item = (I, A)>;
+        T: IntoIterator<Item = (I, V)>;
 }
 
 // ----------------------------------------------------------------------------
@@ -83,8 +83,8 @@ where
     /// store.insert("b", 84);
     ///
     /// // Update store and inspect changes
-    /// for (key, value) in store.changes([("a", 42)]) {
-    ///     println!("{key}: {value:?}");
+    /// for (key, opt) in store.changes([("a", 42)]) {
+    ///     println!("{key}: {opt:?}");
     /// }
     /// ```
     fn changes<T>(&mut self, iter: T) -> impl Iterator<Item = (K, Option<V>)>

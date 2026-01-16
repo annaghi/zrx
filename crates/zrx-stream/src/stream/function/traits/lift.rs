@@ -58,9 +58,9 @@ use crate::value::Chunk;
 /// Also note that it would be more efficient to return an `impl Iterator` from
 /// the lift function, but this doesn't work due to the RPITIT (return-position
 /// impl trait in trait) limitations, as they're not yet stabilized. Once those
-/// hit the stable channel, we might should switching to this approach. We also
-/// considered making the lift function generic over the iterator type, but it
-/// would make the trait more complex and less ergonomic.
+/// hit the stable channel, we should consider switching to this approach. We
+/// also considered making the lift function generic over the iterator type,
+/// but it would make the trait more complex and less ergonomic.
 ///
 /// The `'static` lifetimes is mandatory as closures must be moved into actions,
 /// so requiring it here allows us to reduce the verbosity of trait bounds.

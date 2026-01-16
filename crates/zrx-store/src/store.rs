@@ -301,7 +301,7 @@ where
 ///
 /// ```
 /// use std::collections::HashMap;
-/// use zrx_store::{StoreKeys, StoreMut};
+/// use zrx_store::{StoreMut, StoreValues};
 ///
 /// // Create store and initial state
 /// let mut store = HashMap::new();
@@ -331,7 +331,7 @@ where
 ///
 /// ```
 /// use std::collections::BTreeMap;
-/// use zrx_store::{StoreRange, StoreMut};
+/// use zrx_store::{StoreMut, StoreRange};
 ///
 /// // Create store and initial state
 /// let mut store = BTreeMap::new();

@@ -1,7 +1,4 @@
-// Copyright (c) 2025-2026 Zensical and contributors
-
-// SPDX-License-Identifier: MIT
-// All contributions are certified under the DCO
+// Copyright (c) 2024 Zensical <contributors@zensical.org>
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -23,45 +20,49 @@
 
 // ----------------------------------------------------------------------------
 
-//! Ordering decorator, adding ordering to a store.
+//! Tracking decorator, adding change tracking to a store.
 
-use ahash::HashMap;
+use ahash::{HashMap, HashSet};
 use std::borrow::Borrow;
-use std::collections::BTreeMap;
-use std::fmt;
+use std::marker::PhantomData;
+use std::ops::RangeBounds;
 use std::vec::IntoIter;
+use std::{fmt, mem};
 
 use crate::store::{
     Key, Store, StoreIterable, StoreKeys, StoreMut, StoreValues,
 };
+use crate::{StoreIntoIterator, StoreRange};
 
 // ----------------------------------------------------------------------------
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Ordering decorator, adding ordering.
+/// Tracking decorator, adding change tracking to a store.
 ///
-/// This is a thin wrapper around [`Store`] which is optimized for maintaining
-/// a changing ordering of values, while also being able to identify and update
-/// them. This is ideal for cases like scheduling, where deadlines must be able
-/// to change, while items must be addressable by identifier.
+/// This is a thin wrapper around [`Store`], which allows to track changes for
+/// efficient synchronization of stores, e.g., for persisting changes to disk.
 ///
-/// This implementation uses a [`BTreeMap`] over a [`BinaryHeap`][], because the
-/// latter does not expose an efficient API for maintaining the heap invariant.
-/// Note that it's a good idea to use [`Ordered::default`], since it leverages
+/// Only the keys of changed items are recorded, so subsequent insertions and
+/// removals of the same key are only recorded once. We use change tracking to
+/// efficiently synchronize stores, e.g., for persisting changes to disk, which
+/// is why we're only interested in the latest state of a key. Changes are not
+/// recorded chronologically, but always returned in random order, because of
+/// the use of [`HashSet`] as a data structure for change management.
+///
+/// Note that it's a good idea to use [`Changed::default`], since it leverages
 /// [`ahash`] as a [`BuildHasher`][], which is the fastest known hasher.
 ///
-/// [`BinaryHeap`]: std::collections::BinaryHeap
 /// [`BuildHasher`]: std::hash::BuildHasher
 ///
 /// # Examples
 ///
 /// ```
-/// use zrx_store::decorator::Ordered;
+/// use zrx_store::decorator::Changed;
 /// use zrx_store::StoreMut;
 ///
 /// // Create store and initial state
-/// let mut store = Ordered::default();
+/// let mut store = Changed::default();
 /// store.insert("a", 4);
 /// store.insert("b", 2);
 /// store.insert("c", 3);
@@ -72,38 +73,39 @@ use crate::store::{
 ///     println!("{key}: {value}");
 /// }
 /// ```
-pub struct Ordered<K, V, S = HashMap<K, V>>
+pub struct Changed<K, V, S = HashMap<K, V>>
 where
     K: Key,
     S: Store<K, V>,
 {
     /// Underlying store.
     store: S,
-    /// Ordering of values.
-    ordering: BTreeMap<V, Vec<K>>,
+    /// Keys of changed items.
+    changes: HashSet<K>,
+    /// Marker for types.
+    marker: PhantomData<V>,
 }
 
 // ----------------------------------------------------------------------------
 // Implementations
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> Ordered<K, V, S>
+impl<K, V, S> Changed<K, V, S>
 where
     K: Key,
-    V: Ord,
     S: Store<K, V>,
 {
-    /// Creates an ordering decorator over a store.
+    /// Creates a tracking decorator over a store.
     ///
     /// # Examples
     ///
     /// ```
     /// use std::collections::HashMap;
-    /// use zrx_store::decorator::Ordered;
+    /// use zrx_store::decorator::Changed;
     /// use zrx_store::StoreMut;
     ///
     /// // Create store and initial state
-    /// let mut store = Ordered::<_, _, HashMap<_, _>>::new();
+    /// let mut store = Changed::<_, _, HashMap<_, _>>::new();
     /// store.insert("key", 42);
     /// ```
     #[must_use]
@@ -113,30 +115,39 @@ where
     {
         Self {
             store: S::default(),
-            ordering: BTreeMap::new(),
+            changes: HashSet::default(),
+            marker: PhantomData,
         }
     }
 
-    /// Updates the given key-value pair in the ordering.
-    fn update_ordering(&mut self, value: V, key: K) {
-        self.ordering
-            .entry(value)
-            .or_insert_with(|| Vec::with_capacity(1))
-            .push(key);
-    }
-
-    /// Removes the given key-value pair from the ordering.
-    fn remove_ordering<Q>(&mut self, value: &V, key: &Q)
-    where
-        K: Borrow<Q>,
-        Q: Key,
-    {
-        if let Some(keys) = self.ordering.get_mut(value) {
-            keys.retain(|check| check.borrow() != key);
-            if keys.is_empty() {
-                self.ordering.remove(value);
-            }
-        }
+    /// Returns a change iterator over the store.
+    ///
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_store::decorator::Changed;
+    /// use zrx_store::StoreMut;
+    ///
+    /// // Create store and initial state
+    /// let mut store = Changed::default();
+    /// store.insert("a", 4);
+    /// store.insert("b", 2);
+    /// store.insert("c", 3);
+    /// store.insert("d", 1);
+    ///
+    /// // Obtain changes from store
+    /// for (key, opt) in store.changes() {
+    ///     println!("{key}: {opt:?}");
+    /// }
+    /// ```
+    #[inline]
+    pub fn changes(&mut self) -> impl Iterator<Item = (K, Option<&V>)> {
+        let iter = mem::take(&mut self.changes).into_iter();
+        iter.map(|key| {
+            let opt = self.store.get(&key);
+            (key, opt)
+        })
     }
 }
 
@@ -144,7 +155,7 @@ where
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> Store<K, V> for Ordered<K, V, S>
+impl<K, V, S> Store<K, V> for Changed<K, V, S>
 where
     K: Key,
     S: Store<K, V>,
@@ -154,11 +165,11 @@ where
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Ordered;
+    /// use zrx_store::decorator::Changed;
     /// use zrx_store::{Store, StoreMut};
     ///
     /// // Create store and initial state
-    /// let mut store = Ordered::default();
+    /// let mut store = Changed::default();
     /// store.insert("key", 42);
     ///
     /// // Obtain reference to value
@@ -179,11 +190,11 @@ where
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Ordered;
+    /// use zrx_store::decorator::Changed;
     /// use zrx_store::{Store, StoreMut};
     ///
     /// // Create store and initial state
-    /// let mut store = Ordered::default();
+    /// let mut store = Changed::default();
     /// store.insert("key", 42);
     ///
     /// // Ensure presence of key
@@ -199,40 +210,69 @@ where
         self.store.contains_key(key)
     }
 
-    /// Returns the number of items in the store.
+    /// Returns the number of items.
     #[inline]
     fn len(&self) -> usize {
         self.store.len()
     }
 }
 
-impl<K, V, S> StoreMut<K, V> for Ordered<K, V, S>
+impl<K, V, S> StoreMut<K, V> for Changed<K, V, S>
 where
     K: Key,
-    V: Clone + Ord,
-    S: StoreMut<K, V>,
+    S: StoreMut<K, V> + StoreKeys<K, V>,
 {
-    /// Inserts the value identified by the key.
+    /// Updates the value identified by the key.
     ///
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Ordered;
+    /// use zrx_store::decorator::Changed;
     /// use zrx_store::StoreMut;
     ///
     /// // Create store and insert value
-    /// let mut store = Ordered::default();
+    /// let mut store = Changed::default();
     /// store.insert("key", 42);
     /// ```
     #[inline]
     fn insert(&mut self, key: K, value: V) -> Option<V> {
-        if let Some(prior) = self.store.insert(key.clone(), value.clone()) {
-            self.remove_ordering(&prior, &key);
-            self.update_ordering(value, key);
-            Some(prior)
+        self.changes.insert(key.clone());
+        self.store.insert(key, value)
+    }
+
+    /// Updates the value identified by the key if it changed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_store::decorator::Changed;
+    /// use zrx_store::StoreMut;
+    ///
+    /// // Create store
+    /// let mut store = Changed::default();
+    ///
+    /// // Insert value
+    /// let check = store.insert_if_changed(&"key", &42);
+    /// assert_eq!(check, true);
+    ///
+    /// // Ignore unchanged value
+    /// let check = store.insert_if_changed(&"key", &42);
+    /// assert_eq!(check, false);
+    ///
+    /// // Update value
+    /// let check = store.insert_if_changed(&"key", &84);
+    /// assert_eq!(check, true);
+    /// ```
+    #[inline]
+    fn insert_if_changed(&mut self, key: &K, value: &V) -> bool
+    where
+        V: Clone + Eq,
+    {
+        if self.store.insert_if_changed(key, value) {
+            self.changes.insert(key.clone());
+            true
         } else {
-            self.update_ordering(value, key);
-            None
+            false
         }
     }
 
@@ -241,11 +281,11 @@ where
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Ordered;
+    /// use zrx_store::decorator::Changed;
     /// use zrx_store::StoreMut;
     ///
     /// // Create store and initial state
-    /// let mut store = Ordered::default();
+    /// let mut store = Changed::default();
     /// store.insert("key", 42);
     ///
     /// // Remove and return value
@@ -258,8 +298,9 @@ where
         K: Borrow<Q>,
         Q: Key,
     {
-        self.store.remove(key).inspect(|value| {
-            self.remove_ordering(value, key);
+        self.store.remove_entry(key).map(|(key, value)| {
+            self.changes.insert(key);
+            value
         })
     }
 
@@ -268,11 +309,11 @@ where
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Ordered;
+    /// use zrx_store::decorator::Changed;
     /// use zrx_store::StoreMut;
     ///
     /// // Create store and initial state
-    /// let mut store = Ordered::default();
+    /// let mut store = Changed::default();
     /// store.insert("key", 42);
     ///
     /// // Remove and return entry
@@ -285,49 +326,55 @@ where
         K: Borrow<Q>,
         Q: Key,
     {
-        self.store.remove_entry(key).inspect(|(key, value)| {
-            self.remove_ordering(value, key.borrow());
+        self.store.remove_entry(key).inspect(|(key, _)| {
+            self.changes.insert(key.clone());
         })
     }
 
     /// Clears the store, removing all items.
     ///
+    /// Unfortunately, this operation has O(n) compexity, as all keys need to
+    /// be recorded as changed, which requires iterating over the entire store.
+    ///
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Ordered;
+    /// use zrx_store::decorator::Changed;
     /// use zrx_store::{Store, StoreMut};
     ///
     /// // Create store and initial state
-    /// let mut store = Ordered::default();
+    /// let mut store = Changed::default();
     /// store.insert("key", 42);
     ///
     /// // Clear store
     /// store.clear();
     /// assert!(store.is_empty());
     /// ```
-    #[inline]
     fn clear(&mut self) {
+        for key in self.store.keys() {
+            if !self.changes.contains(key) {
+                self.changes.insert(key.clone());
+            }
+        }
         self.store.clear();
-        self.ordering.clear();
     }
 }
 
-impl<K, V, S> StoreIterable<K, V> for Ordered<K, V, S>
+impl<K, V, S> StoreIterable<K, V> for Changed<K, V, S>
 where
     K: Key,
     S: StoreIterable<K, V>,
 {
-    /// Creates an iterator over the store.
+    /// Returns an iterator over the store.
     ///
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Ordered;
+    /// use zrx_store::decorator::Changed;
     /// use zrx_store::{StoreIterable, StoreMut};
     ///
     /// // Create store and initial state
-    /// let mut store = Ordered::default();
+    /// let mut store = Changed::default();
     /// store.insert("key", 42);
     ///
     /// // Create iterator over the store
@@ -341,13 +388,11 @@ where
         K: 'a,
         V: 'a,
     {
-        self.ordering
-            .iter()
-            .flat_map(|(value, keys)| keys.iter().map(move |key| (key, value)))
+        self.store.iter()
     }
 }
 
-impl<K, V, S> StoreKeys<K, V> for Ordered<K, V, S>
+impl<K, V, S> StoreKeys<K, V> for Changed<K, V, S>
 where
     K: Key,
     S: StoreKeys<K, V>,
@@ -357,11 +402,11 @@ where
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Ordered;
+    /// use zrx_store::decorator::Changed;
     /// use zrx_store::{StoreKeys, StoreMut};
     ///
     /// // Create store and initial state
-    /// let mut store = Ordered::default();
+    /// let mut store = Changed::default();
     /// store.insert("key", 42);
     ///
     /// // Create iterator over the store
@@ -374,11 +419,11 @@ where
     where
         K: 'a,
     {
-        self.ordering.iter().flat_map(|(_, keys)| keys.iter())
+        self.store.keys()
     }
 }
 
-impl<K, V, S> StoreValues<K, V> for Ordered<K, V, S>
+impl<K, V, S> StoreValues<K, V> for Changed<K, V, S>
 where
     K: Key,
     S: StoreValues<K, V>,
@@ -388,11 +433,11 @@ where
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Ordered;
+    /// use zrx_store::decorator::Changed;
     /// use zrx_store::{StoreMut, StoreValues};
     ///
     /// // Create store and initial state
-    /// let mut store = Ordered::default();
+    /// let mut store = Changed::default();
     /// store.insert("key", 42);
     ///
     /// // Create iterator over the store
@@ -405,17 +450,51 @@ where
     where
         V: 'a,
     {
-        self.ordering.keys()
+        self.store.values()
+    }
+}
+
+impl<K, V, S> StoreRange<K, V> for Changed<K, V, S>
+where
+    K: Key,
+    S: StoreRange<K, V>,
+{
+    /// Creates a range iterator over the store.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::BTreeMap;
+    /// use zrx_store::decorator::Changed;
+    /// use zrx_store::{StoreMut, StoreRange};
+    ///
+    /// // Create store and initial state
+    /// let mut store = Changed::<_, _, BTreeMap<_, _>>::new();
+    /// store.insert("a", 42);
+    /// store.insert("b", 84);
+    ///
+    /// // Create iterator over the store
+    /// for (key, value) in store.range("b"..) {
+    ///     println!("{key}: {value}");
+    /// }
+    /// ```
+    #[inline]
+    fn range<'a, R>(&'a self, range: R) -> impl Iterator<Item = (&'a K, &'a V)>
+    where
+        R: RangeBounds<K>,
+        K: 'a,
+        V: 'a,
+    {
+        self.store.range(range)
     }
 }
 
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> FromIterator<(K, V)> for Ordered<K, V, S>
+impl<K, V, S> FromIterator<(K, V)> for Changed<K, V, S>
 where
     K: Key,
-    V: Clone + Ord,
-    S: StoreMut<K, V> + Default,
+    S: StoreMut<K, V> + StoreKeys<K, V> + Default,
 {
     /// Creates a store from an iterator.
     ///
@@ -423,7 +502,7 @@ where
     ///
     /// ```
     /// use std::collections::HashMap;
-    /// use zrx_store::decorator::Ordered;
+    /// use zrx_store::decorator::Changed;
     /// use zrx_store::StoreMut;
     ///
     /// // Create a vector of key-value pairs
@@ -435,7 +514,7 @@ where
     /// ];
     ///
     /// // Create store from iterator
-    /// let store: Ordered<_, _, HashMap<_, _>> =
+    /// let store: Changed<_, _, HashMap<_, _>> =
     ///     items.into_iter().collect();
     ///
     /// // Create iterator over the store
@@ -456,11 +535,10 @@ where
     }
 }
 
-impl<K, V, S> IntoIterator for Ordered<K, V, S>
+impl<K, V, S> IntoIterator for Changed<K, V, S>
 where
     K: Key,
-    V: Clone,
-    S: Store<K, V>,
+    S: Store<K, V> + StoreIntoIterator<K, V>,
 {
     type Item = (K, V);
     type IntoIter = IntoIter<Self::Item>;
@@ -475,11 +553,11 @@ where
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Ordered;
+    /// use zrx_store::decorator::Changed;
     /// use zrx_store::StoreMut;
     ///
     /// // Create store and initial state
-    /// let mut store = Ordered::default();
+    /// let mut store = Changed::default();
     /// store.insert("key", 42);
     ///
     /// // Create iterator over the store
@@ -488,25 +566,18 @@ where
     /// }
     /// ```
     fn into_iter(self) -> Self::IntoIter {
-        self.ordering
-            .into_iter()
-            .flat_map(|(value, keys)| {
-                keys.into_iter().map(move |key| (key, value.clone()))
-            })
-            .collect::<Vec<_>>()
-            .into_iter()
+        self.store.into_iter().collect::<Vec<_>>().into_iter()
     }
 }
 
 // ----------------------------------------------------------------------------
 
 #[allow(clippy::implicit_hasher)]
-impl<K, V> Default for Ordered<K, V, HashMap<K, V>>
+impl<K, V> Default for Changed<K, V, HashMap<K, V>>
 where
     K: Key,
-    V: Ord,
 {
-    /// Creates a ordering decorator with [`HashMap::default`] as a store.
+    /// Creates a tracking decorator with [`HashMap::default`] as a store.
     ///
     /// Note that this method does not allow to customize the [`BuildHasher`][],
     /// but uses [`ahash`] by default, which is the fastest known hasher.
@@ -516,11 +587,11 @@ where
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Ordered;
+    /// use zrx_store::decorator::Changed;
     /// use zrx_store::StoreMut;
     ///
     /// // Create store and initial state
-    /// let mut store = Ordered::default();
+    /// let mut store = Changed::default();
     /// store.insert("key", 42);
     /// ```
     #[inline]
@@ -531,17 +602,16 @@ where
 
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> fmt::Debug for Ordered<K, V, S>
+impl<K, V, S> fmt::Debug for Changed<K, V, S>
 where
     K: Key + fmt::Debug,
-    V: fmt::Debug,
     S: Store<K, V> + fmt::Debug,
 {
-    /// Formats the ordering decorator for debugging.
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Order")
+    /// Formats the tracking decorator for debugging.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Changed")
             .field("store", &self.store)
-            .field("ordering", &self.ordering)
+            .field("changes", &self.changes)
             .finish()
     }
 }
