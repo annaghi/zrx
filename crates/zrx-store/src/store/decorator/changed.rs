@@ -30,8 +30,8 @@ use std::vec::IntoIter;
 use std::{fmt, mem};
 
 use crate::store::{
-    Key, Store, StoreIntoIterator, StoreIterable, StoreKeys, StoreMut,
-    StoreRange, StoreValues,
+    Key, Store, StoreFromIterator, StoreIntoIterator, StoreIterable, StoreKeys,
+    StoreMut, StoreRange, StoreValues,
 };
 
 // ----------------------------------------------------------------------------
@@ -497,7 +497,7 @@ where
 impl<K, V, S> FromIterator<(K, V)> for Changed<K, V, S>
 where
     K: Key,
-    S: StoreMut<K, V> + StoreKeys<K, V> + Default,
+    S: StoreMut<K, V> + StoreFromIterator<K, V>,
 {
     /// Creates a store from an iterator.
     ///
@@ -530,11 +530,11 @@ where
     where
         T: IntoIterator<Item = (K, V)>,
     {
-        let mut store = Self::new();
-        for (key, value) in iter {
-            store.insert(key, value);
+        Self {
+            store: S::from_iter(iter),
+            changes: HashSet::default(),
+            marker: PhantomData,
         }
-        store
     }
 }
 
