@@ -29,8 +29,8 @@ pub mod queue;
 mod store;
 
 pub use store::behavior;
+pub use store::compare::{self, Compare};
 pub use store::decorator;
-pub use store::order::{self, Comparator};
 pub use store::{
     Key, Store, StoreFromIterator, StoreIntoIterator, StoreIterable,
     StoreIterableMut, StoreKeys, StoreMut, StoreMutRef, StoreRange,

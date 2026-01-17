@@ -30,9 +30,9 @@ use std::vec::IntoIter;
 use std::{fmt, mem};
 
 use crate::store::{
-    Key, Store, StoreIterable, StoreKeys, StoreMut, StoreValues,
+    Key, Store, StoreIntoIterator, StoreIterable, StoreKeys, StoreMut,
+    StoreRange, StoreValues,
 };
-use crate::{StoreIntoIterator, StoreRange};
 
 // ----------------------------------------------------------------------------
 // Structs
@@ -122,6 +122,10 @@ where
 
     /// Returns a change iterator over the store.
     ///
+    /// This method returns an iterator over all changed keys since the last
+    /// call to this method. The iterator yields tuples of keys and optional
+    /// references to the corresponding values in the store, so if a key was
+    /// removed from the store, the value will be [`None`].
     ///
     /// # Examples
     ///
@@ -141,7 +145,6 @@ where
     ///     println!("{key}: {opt:?}");
     /// }
     /// ```
-    #[inline]
     pub fn changes(&mut self) -> impl Iterator<Item = (K, Option<&V>)> {
         let iter = mem::take(&mut self.changes).into_iter();
         iter.map(|key| {
@@ -545,7 +548,7 @@ where
 
     /// Creates an iterator over the store.
     ///
-    /// This function will consume the store, and collect it into a vector, as
+    /// This method consumes the store, and collects it into a vector, since
     /// there's currently no way to implement this due to the absence of ATPIT
     /// (associated type position impl trait) support in stable Rust. When the
     /// feature is stabilized, we can switch to a more efficient approach.
