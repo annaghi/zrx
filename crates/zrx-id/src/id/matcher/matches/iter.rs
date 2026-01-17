@@ -45,36 +45,6 @@ pub struct IntoIter {
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl Iterator for IntoIter {
-    type Item = usize;
-
-    /// Returns the next match.
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            if self.block != 0 {
-                let num = self.block.trailing_zeros() as usize;
-
-                // Clear the lowest bit and return it
-                self.block &= self.block - 1;
-                return Some(self.index << 6 | num);
-            }
-
-            // Move to the next block
-            self.index += 1;
-
-            // If all blocks are exhausted, we're done
-            if self.index >= self.data.len() {
-                return None;
-            }
-
-            // Update the current block to the next block
-            self.block = self.data[self.index];
-        }
-    }
-}
-
-// ----------------------------------------------------------------------------
-
 impl IntoIterator for Matches {
     type Item = usize;
     type IntoIter = IntoIter;
@@ -101,6 +71,36 @@ impl IntoIterator for Matches {
             data: self.data,
             index: 0,
             block,
+        }
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+impl Iterator for IntoIter {
+    type Item = usize;
+
+    /// Returns the next match.
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if self.block != 0 {
+                let num = self.block.trailing_zeros() as usize;
+
+                // Clear the lowest bit and return it
+                self.block &= self.block - 1;
+                return Some(self.index << 6 | num);
+            }
+
+            // Move to the next block
+            self.index += 1;
+
+            // If all blocks are exhausted, we're done
+            if self.index >= self.data.len() {
+                return None;
+            }
+
+            // Update the current block to the next block
+            self.block = self.data[self.index];
         }
     }
 }
