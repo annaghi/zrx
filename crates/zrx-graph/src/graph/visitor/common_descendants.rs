@@ -119,35 +119,6 @@ impl Iterator for CommonDescendants<'_> {
     type Item = Vec<usize>;
 
     /// Returns the next layer of common descendants.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use std::error::Error;
-    /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// use zrx_graph::Graph;
-    ///
-    /// // Create graph builder and add nodes
-    /// let mut builder = Graph::builder();
-    /// let a = builder.add_node("a");
-    /// let b = builder.add_node("b");
-    /// let c = builder.add_node("c");
-    ///
-    /// // Create edges between nodes
-    /// builder.add_edge(a, c, 0)?;
-    /// builder.add_edge(b, c, 0)?;
-    ///
-    /// // Create graph from builder
-    /// let graph = builder.build();
-    ///
-    /// // Create iterator over common descendants
-    /// let mut descendants = graph.common_descendants([a, b]);
-    /// while let Some(nodes) = descendants.next() {
-    ///     println!("{nodes:?}");
-    /// }
-    /// # Ok(())
-    /// # }
-    /// ```
     fn next(&mut self) -> Option<Self::Item> {
         if self.descendants.is_empty() {
             return None;

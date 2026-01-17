@@ -111,35 +111,6 @@ impl Iterator for Ancestors<'_> {
     type Item = usize;
 
     /// Returns the next ancestor.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use std::error::Error;
-    /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// use zrx_graph::Graph;
-    ///
-    /// // Create graph builder and add nodes
-    /// let mut builder = Graph::builder();
-    /// let a = builder.add_node("a");
-    /// let b = builder.add_node("b");
-    /// let c = builder.add_node("c");
-    ///
-    /// // Create edges between nodes
-    /// builder.add_edge(a, b, 0)?;
-    /// builder.add_edge(b, c, 0)?;
-    ///
-    /// // Create graph from builder
-    /// let graph = builder.build();
-    ///
-    /// // Create iterator over ancestors
-    /// let mut ancestors = graph.ancestors(c);
-    /// while let Some(node) = ancestors.next() {
-    ///     println!("{node:?}");
-    /// }
-    /// # Ok(())
-    /// # }
-    /// ```
     fn next(&mut self) -> Option<Self::Item> {
         // Perform a depth-first search to find all ancestors of a node, by
         // exploring them iteratively, not including the node itself
