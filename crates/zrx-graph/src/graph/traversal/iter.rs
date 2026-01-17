@@ -47,26 +47,6 @@ pub struct IntoIter {
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl Iterator for IntoIter {
-    type Item = usize;
-
-    /// Returns the next node.
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        let node = self.traversal.take()?;
-        self.traversal.complete(node).expect("invariant");
-        Some(node)
-    }
-
-    /// Returns the bounds of the traversal.
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.traversal.len(), None)
-    }
-}
-
-// ----------------------------------------------------------------------------
-
 impl IntoIterator for Traversal {
     type Item = usize;
     type IntoIter = IntoIter;
@@ -107,5 +87,25 @@ impl IntoIterator for Traversal {
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
         IntoIter { traversal: self }
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+impl Iterator for IntoIter {
+    type Item = usize;
+
+    /// Returns the next node.
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        let node = self.traversal.take()?;
+        self.traversal.complete(node).expect("invariant");
+        Some(node)
+    }
+
+    /// Returns the bounds on the remaining length of the traversal.
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.traversal.len(), None)
     }
 }
