@@ -116,7 +116,7 @@ impl<T> Item<T> {
 
 impl<T> PartialEq for Item<T>
 where
-    T: Eq,
+    T: PartialEq,
 {
     /// Compares two queue items for equality.
     ///

@@ -130,7 +130,7 @@ impl<T, C> Deref for Comparable<T, C> {
 
 impl<T, C> PartialEq for Comparable<T, C>
 where
-    T: Eq,
+    T: PartialEq,
 {
     /// Compares two values for equality.
     ///
