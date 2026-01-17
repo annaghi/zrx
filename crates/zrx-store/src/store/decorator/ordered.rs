@@ -29,12 +29,15 @@ use ahash::HashMap;
 use std::borrow::Borrow;
 use std::collections::BTreeMap;
 use std::fmt;
-use std::vec::IntoIter;
 
 use crate::store::comparator::{Ascending, Comparable, Comparator};
 use crate::store::{
     Key, Store, StoreIterable, StoreKeys, StoreMut, StoreValues,
 };
+
+mod iter;
+
+pub use iter::IntoIter;
 
 // ----------------------------------------------------------------------------
 // Structs
@@ -507,48 +510,6 @@ where
             store.insert(key, value);
         }
         store
-    }
-}
-
-impl<K, V, S, C> IntoIterator for Ordered<K, V, S, C>
-where
-    K: Key,
-    V: Clone,
-    S: Store<K, V>,
-{
-    type Item = (K, V);
-    type IntoIter = IntoIter<Self::Item>;
-
-    /// Creates an iterator over the store.
-    ///
-    /// This method consumes the store, and collects it into a vector, since
-    /// there's currently no way to implement this due to the absence of ATPIT
-    /// (associated type position impl trait) support in stable Rust. When the
-    /// feature is stabilized, we can switch to a more efficient approach.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_store::decorator::Ordered;
-    /// use zrx_store::StoreMut;
-    ///
-    /// // Create store and initial state
-    /// let mut store = Ordered::default();
-    /// store.insert("key", 42);
-    ///
-    /// // Create iterator over the store
-    /// for (key, value) in store {
-    ///     println!("{key}: {value}");
-    /// }
-    /// ```
-    fn into_iter(self) -> Self::IntoIter {
-        self.ordering
-            .into_iter()
-            .flat_map(|(value, keys)| {
-                keys.into_iter().map(move |key| (key, value.clone()))
-            })
-            .collect::<Vec<_>>()
-            .into_iter()
     }
 }
 
