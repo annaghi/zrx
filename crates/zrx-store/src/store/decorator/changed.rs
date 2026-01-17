@@ -26,7 +26,6 @@ use ahash::{HashMap, HashSet};
 use std::borrow::Borrow;
 use std::marker::PhantomData;
 use std::ops::RangeBounds;
-use std::vec::IntoIter;
 use std::{fmt, mem};
 
 use crate::store::{
@@ -544,7 +543,7 @@ where
     S: Store<K, V> + StoreIntoIterator<K, V>,
 {
     type Item = (K, V);
-    type IntoIter = IntoIter<Self::Item>;
+    type IntoIter = S::IntoIter;
 
     /// Creates an iterator over the store.
     ///
@@ -569,7 +568,7 @@ where
     /// }
     /// ```
     fn into_iter(self) -> Self::IntoIter {
-        self.store.into_iter().collect::<Vec<_>>().into_iter()
+        self.store.into_iter()
     }
 }
 
