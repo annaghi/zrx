@@ -81,6 +81,16 @@ impl<T, C> Comparable<T, C> {
     }
 
     /// Returns the inner value, consuming the comparable value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_store::comparator::{Ascending, Comparable};
+    ///
+    /// // Create comparable value
+    /// let value = Comparable::new(42, Ascending);
+    /// assert_eq!(value.into_inner(), 42);
+    /// ```
     #[inline]
     pub fn into_inner(self) -> T {
         self.0
