@@ -889,8 +889,6 @@ where
         f.debug_struct("Indexed")
             .field("store", &self.store)
             .field("ordering", &self.ordering)
-            .field("comparator", &self.comparator)
-            .field("marker", &self.marker)
-            .finish()
+            .finish_non_exhaustive()
     }
 }

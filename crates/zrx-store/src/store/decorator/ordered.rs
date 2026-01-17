@@ -573,14 +573,12 @@ where
     K: Key + fmt::Debug,
     V: fmt::Debug,
     S: Store<K, V> + fmt::Debug,
-    C: fmt::Debug,
 {
     /// Formats the ordering decorator for debugging.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Order")
             .field("store", &self.store)
             .field("ordering", &self.ordering)
-            .field("comparator", &self.comparator)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
