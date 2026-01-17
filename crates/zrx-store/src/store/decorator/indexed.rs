@@ -31,12 +31,15 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::marker::PhantomData;
 use std::ops::{Bound, Index, Range, RangeBounds};
-use std::vec::IntoIter;
 
 use crate::store::comparator::{Ascending, Comparator};
 use crate::store::{
     Key, Store, StoreIterable, StoreKeys, StoreMut, StoreValues,
 };
+
+mod iter;
+
+pub use iter::IntoIter;
 
 // ----------------------------------------------------------------------------
 // Structs
@@ -798,50 +801,6 @@ where
             store.insert(key, value);
         }
         store
-    }
-}
-
-impl<K, V, S, C> IntoIterator for Indexed<K, V, S, C>
-where
-    K: Key,
-    S: StoreMut<K, V>,
-{
-    type Item = (K, V);
-    type IntoIter = IntoIter<Self::Item>;
-
-    /// Creates an iterator over the store.
-    ///
-    /// This method consumes the store, and collects it into a vector, since
-    /// there's currently no way to implement this due to the absence of ATPIT
-    /// (associated type position impl trait) support in stable Rust. When the
-    /// feature is stabilized, we can switch to a more efficient approach.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_store::decorator::Indexed;
-    /// use zrx_store::StoreMut;
-    ///
-    /// // Create store and initial state
-    /// let mut store = Indexed::default();
-    /// store.insert("key", 42);
-    ///
-    /// // Create iterator over the store
-    /// for (key, value) in store {
-    ///     println!("{key}: {value}");
-    /// }
-    /// ```
-    fn into_iter(mut self) -> Self::IntoIter {
-        self.ordering
-            .into_iter()
-            .map(|key| {
-                self.store
-                    .remove(&key)
-                    .map(|value| (key, value))
-                    .expect("invariant")
-            })
-            .collect::<Vec<_>>()
-            .into_iter()
     }
 }
 
