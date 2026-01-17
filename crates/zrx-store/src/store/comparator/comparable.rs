@@ -79,6 +79,12 @@ impl<T, C> Comparable<T, C> {
     pub fn new(value: T, comparator: C) -> Self {
         Comparable(value, comparator)
     }
+
+    /// Returns the inner value, consuming the comparable value.
+    #[inline]
+    pub fn into_inner(self) -> T {
+        self.0
+    }
 }
 
 // ----------------------------------------------------------------------------
