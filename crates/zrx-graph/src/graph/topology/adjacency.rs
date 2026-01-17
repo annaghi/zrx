@@ -148,7 +148,7 @@ impl Adjacency {
 
     /// Creates an adjacency list.
     ///
-    /// This function does not take a full graph as input because we only need
+    /// This method does not take a full graph as input because we only need
     /// the actual edges to construct the adjacency list, as well as the number
     /// of nodes. This allows us to create adjacency lists for both directions
     /// without needing to duplicate code, as we can just invert the graph.

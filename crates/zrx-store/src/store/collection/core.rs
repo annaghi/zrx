@@ -30,11 +30,12 @@ use std::collections::{BTreeMap, HashMap};
 use std::hash::BuildHasher;
 use std::ops::RangeBounds;
 
-use crate::store::util::update_if_changed;
 use crate::store::{
     Key, Store, StoreIterable, StoreIterableMut, StoreKeys, StoreMut,
     StoreMutRef, StoreRange, StoreValues,
 };
+
+use super::update_if_changed;
 
 // ----------------------------------------------------------------------------
 // Trait implementations

@@ -29,10 +29,10 @@ use ahash::HashMap;
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::fmt;
+use std::marker::PhantomData;
 use std::ops::{Bound, Index, Range, RangeBounds};
 use std::vec::IntoIter;
 
-use crate::order::Comparator;
 use crate::store::{
     Key, Store, StoreIterable, StoreKeys, StoreMut, StoreValues,
 };
@@ -102,8 +102,8 @@ where
     store: S,
     /// Ordering of values.
     ordering: Vec<K>,
-    /// Custom comparator, optional.
-    order: Option<Comparator<V>>,
+    /// Marker for types.
+    marker: PhantomData<V>,
 }
 
 // ----------------------------------------------------------------------------
@@ -137,36 +137,7 @@ where
         Self {
             store: S::default(),
             ordering: Vec::new(),
-            order: None,
-        }
-    }
-
-    /// Creates an indexing decorator over a store with a custom order.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::HashMap;
-    /// use zrx_store::decorator::Indexed;
-    /// use zrx_store::{order, StoreMut};
-    ///
-    /// // Create store with custom order
-    /// let f = order::by(|value| -value);
-    /// let mut store = Indexed::<_, _, HashMap<_, _>>::with_order(f);
-    ///
-    /// // Insert values
-    /// store.insert("a", 42);
-    /// store.insert("b", 84);
-    /// ```
-    pub fn with_order<F>(order: F) -> Self
-    where
-        S: Default,
-        F: Fn(&V, &V) -> Ordering + 'static,
-    {
-        Self {
-            store: S::default(),
-            ordering: Vec::new(),
-            order: Some(Box::new(order)),
+            marker: PhantomData,
         }
     }
 
@@ -236,15 +207,13 @@ where
         K: Borrow<Q>,
         Q: Key,
     {
-        let order = self.order.as_deref().unwrap_or(&Ord::cmp);
-
         // Find the existing position of the key-value pair, or the position at
         // which it should be inserted. Since the ordering is guaranteed to be
         // sorted, we can rely on binary search to find the position and keep
         // the index ordered at all times.
         self.ordering.binary_search_by(|check| {
             let check = check.borrow();
-            match order(self.get(check).expect("invariant"), value) {
+            match self.store.get(check).expect("invariant").cmp(value) {
                 Ordering::Equal => check.cmp(key),
                 ordering => ordering,
             }
@@ -803,7 +772,7 @@ where
 
     /// Creates an iterator over the store.
     ///
-    /// This function will consume the store, and collect it into a vector, as
+    /// This method consumes the store, and collects it into a vector, since
     /// there's currently no way to implement this due to the absence of ATPIT
     /// (associated type position impl trait) support in stable Rust. When the
     /// feature is stabilized, we can switch to a more efficient approach.

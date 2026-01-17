@@ -30,10 +30,9 @@ use std::ops::RangeBounds;
 
 pub mod behavior;
 mod collection;
+pub mod compare;
 pub mod decorator;
 mod key;
-pub mod order;
-pub mod util;
 
 pub use key::Key;
 
