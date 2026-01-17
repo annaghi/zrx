@@ -280,7 +280,8 @@ where
     /// use zrx_store::{StoreMut, StoreMutRef};
     ///
     /// // Create store
-    /// let mut store = LiteMap::<_, i32>::new_vec();
+    /// let mut store = LiteMap::new_vec();
+    /// # let _: LiteMap<_, i32> = store;
     ///
     /// // Obtain mutable reference to value
     /// let value = store.get_or_insert_default(&"key");

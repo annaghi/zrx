@@ -272,7 +272,8 @@ where
     /// use zrx_store::StoreMutRef;
     ///
     /// // Create store
-    /// let mut store = HashMap::<_, i32>::new();
+    /// let mut store = HashMap::new();
+    /// # let _: HashMap<_, i32> = store;
     ///
     /// // Obtain mutable reference to value
     /// let value = store.get_or_insert_default(&"key");
@@ -644,7 +645,8 @@ where
     /// use zrx_store::StoreMutRef;
     ///
     /// // Create store
-    /// let mut store = BTreeMap::<_, i32>::new();
+    /// let mut store = BTreeMap::new();
+    /// # let _: BTreeMap<_, i32> = store;
     ///
     /// // Obtain mutable reference to value
     /// let value = store.get_or_insert_default(&"key");
