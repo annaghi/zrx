@@ -103,7 +103,7 @@ where
         loop {
             // Check if we have keys left with the current value
             if let Some(key) = self.keys.next() {
-                return self.value.clone().map(|v| (key, v));
+                return self.value.clone().map(|value| (key, value));
             }
 
             // Fetch the next value and associated keys
