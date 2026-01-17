@@ -607,8 +607,8 @@ where
 
 impl<K, V, S> fmt::Debug for Changed<K, V, S>
 where
-    K: Key + fmt::Debug,
-    S: Store<K, V> + fmt::Debug,
+    K: fmt::Debug + Key,
+    S: fmt::Debug + Store<K, V>,
 {
     /// Formats the tracking decorator for debugging.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

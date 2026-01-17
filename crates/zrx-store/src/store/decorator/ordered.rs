@@ -587,9 +587,9 @@ where
 
 impl<K, V, S, C> fmt::Debug for Ordered<K, V, S, C>
 where
-    K: Key + fmt::Debug,
+    K: fmt::Debug + Key,
     V: fmt::Debug,
-    S: Store<K, V> + fmt::Debug,
+    S: fmt::Debug + Store<K, V>,
 {
     /// Formats the ordering decorator for debugging.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

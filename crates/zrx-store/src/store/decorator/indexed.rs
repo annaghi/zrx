@@ -880,8 +880,8 @@ where
 
 impl<K, V, S, C> fmt::Debug for Indexed<K, V, S, C>
 where
-    K: Key + fmt::Debug,
-    S: Store<K, V> + fmt::Debug,
+    K: fmt::Debug + Key,
+    S: fmt::Debug + Store<K, V>,
     C: fmt::Debug,
 {
     /// Formats the indexing decorator for debugging.
