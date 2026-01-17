@@ -40,7 +40,7 @@ use crate::store::{
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Ordering decorator, adding ordering.
+/// Ordering decorator, adding ordering to a store.
 ///
 /// This is a thin wrapper around [`Store`] which is optimized for maintaining
 /// a changing ordering of values, while also being able to identify and update
@@ -82,18 +82,19 @@ where
     store: S,
     /// Ordering of values.
     ordering: BTreeMap<Comparable<V, C>, Vec<K>>,
+    /// Comparator.
+    comparator: C,
 }
 
 // ----------------------------------------------------------------------------
 // Implementations
 // ----------------------------------------------------------------------------
 
-impl<K, V, S, C> Ordered<K, V, S, C>
+impl<K, V, S> Ordered<K, V, S>
 where
     K: Key,
     V: Ord,
     S: Store<K, V>,
-    C: Comparator<V>,
 {
     /// Creates an ordering decorator over a store.
     ///
@@ -108,21 +109,54 @@ where
     /// let mut store = Ordered::<_, _, HashMap<_, _>>::new();
     /// store.insert("key", 42);
     /// ```
+    #[inline]
     #[must_use]
     pub fn new() -> Self
+    where
+        S: Default,
+    {
+        Self::with_comparator(Ascending)
+    }
+}
+
+impl<K, V, S, C> Ordered<K, V, S, C>
+where
+    K: Key,
+    V: Ord,
+    S: Store<K, V>,
+    C: Comparator<V> + Clone,
+{
+    /// Creates an ordering decorator over a store with the given comparator.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::HashMap;
+    /// use zrx_store::comparator::Descending;
+    /// use zrx_store::decorator::Ordered;
+    /// use zrx_store::StoreMut;
+    ///
+    /// // Create store and initial state
+    /// let mut store: Ordered::<_, _, HashMap<_, _>, _> =
+    ///     Ordered::with_comparator(Descending);
+    /// store.insert("key", 42);
+    /// ```
+    #[must_use]
+    pub fn with_comparator(comparator: C) -> Self
     where
         S: Default,
     {
         Self {
             store: S::default(),
             ordering: BTreeMap::new(),
+            comparator,
         }
     }
 
     /// Updates the given key-value pair in the ordering.
     fn update_ordering(&mut self, value: V, key: K) {
         self.ordering
-            .entry(Comparable::from(value))
+            .entry(Comparable::new(value, self.comparator.clone()))
             .or_insert_with(|| Vec::with_capacity(1))
             .push(key);
     }
@@ -213,7 +247,7 @@ where
     K: Key,
     V: Clone + Ord,
     S: StoreMut<K, V>,
-    C: Comparator<V>,
+    C: Comparator<V> + Clone,
 {
     /// Inserts the value identified by the key.
     ///
@@ -414,12 +448,11 @@ where
 
 // ----------------------------------------------------------------------------
 
-impl<K, V, S, C> FromIterator<(K, V)> for Ordered<K, V, S, C>
+impl<K, V, S> FromIterator<(K, V)> for Ordered<K, V, S>
 where
     K: Key,
     V: Clone + Ord,
     S: StoreMut<K, V> + Default,
-    C: Comparator<V>,
 {
     /// Creates a store from an iterator.
     ///
@@ -540,12 +573,14 @@ where
     K: Key + fmt::Debug,
     V: fmt::Debug,
     S: Store<K, V> + fmt::Debug,
+    C: fmt::Debug,
 {
     /// Formats the ordering decorator for debugging.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Order")
             .field("store", &self.store)
             .field("ordering", &self.ordering)
+            .field("comparator", &self.comparator)
             .finish()
     }
 }

@@ -28,7 +28,6 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::fmt;
-use std::marker::PhantomData;
 use std::ops::Deref;
 
 use super::{Ascending, Comparator};
@@ -44,6 +43,9 @@ use super::{Ascending, Comparator};
 /// It implements the [`Eq`], [`PartialEq`], [`Ord`] and [`PartialOrd`] traits,
 /// as well as [`Deref`], so the original value can be used transparently.
 ///
+/// If `C` is a zero-sized type (ZST), and doesn't capture any variables, the
+/// runtime overhead is zero, as the compiler is able to optimize it away.
+///
 /// # Examples
 ///
 /// ```
@@ -55,13 +57,35 @@ use super::{Ascending, Comparator};
 /// assert!(a < b);
 /// ```
 #[derive(Clone)]
-pub struct Comparable<T, C = Ascending>(T, PhantomData<C>);
+pub struct Comparable<T, C = Ascending>(T, C);
+
+// ----------------------------------------------------------------------------
+// Implementations
+// ----------------------------------------------------------------------------
+
+impl<T, C> Comparable<T, C> {
+    /// Creates a comparable value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_store::comparator::{Ascending, Comparable};
+    ///
+    /// // Create comparable value
+    /// let value = Comparable::new(42, Ascending);
+    /// assert_eq!(*value, 42);
+    /// ```
+    #[inline]
+    pub fn new(value: T, comparator: C) -> Self {
+        Comparable(value, comparator)
+    }
+}
 
 // ----------------------------------------------------------------------------
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl<T, C> From<T> for Comparable<T, C> {
+impl<T> From<T> for Comparable<T> {
     /// Creates a comparable value from a value.
     ///
     /// # Examples
@@ -69,13 +93,13 @@ impl<T, C> From<T> for Comparable<T, C> {
     /// ```
     /// use zrx_store::comparator::Comparable;
     ///
-    /// // Create comparable value from value
+    /// // Create comparable value
     /// let value: Comparable<_> = 42.into();
     /// assert_eq!(*value, 42);
     /// ```
     #[inline]
     fn from(value: T) -> Self {
-        Comparable(value, PhantomData)
+        Comparable(value, Ascending)
     }
 }
 
@@ -172,7 +196,7 @@ where
     /// ```
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
-        C::cmp(&self.0, &other.0)
+        self.1.cmp(&self.0, &other.0)
     }
 }
 

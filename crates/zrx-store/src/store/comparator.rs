@@ -37,9 +37,14 @@ pub use comparable::Comparable;
 // ----------------------------------------------------------------------------
 
 /// Comparator.
-pub trait Comparator<T>: Debug {
+///
+/// This data type defines a comparator for values of type `T`, which can be
+/// used to customize the ordering of values in stores. If it's a zero-sized
+/// type (ZST), e.g., a struct without fields or closure that doesn't capture
+/// any variables, it's optimized away, resulting in zero-runtime overhead.
+pub trait Comparator<T> {
     /// Compares two values.
-    fn cmp(a: &T, b: &T) -> Ordering;
+    fn cmp(&self, a: &T, b: &T) -> Ordering;
 }
 
 // ----------------------------------------------------------------------------
@@ -47,11 +52,11 @@ pub trait Comparator<T>: Debug {
 // ----------------------------------------------------------------------------
 
 /// Comparator for ascending order.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Ascending;
 
 /// Comparator for descending order.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Descending;
 
 // ----------------------------------------------------------------------------
@@ -63,7 +68,7 @@ where
     T: Ord,
 {
     /// Compares two values in ascending order.
-    fn cmp(a: &T, b: &T) -> Ordering {
+    fn cmp(&self, a: &T, b: &T) -> Ordering {
         a.cmp(b)
     }
 }
@@ -73,7 +78,21 @@ where
     T: Ord,
 {
     /// Compares two values in descending order.
-    fn cmp(a: &T, b: &T) -> Ordering {
+    fn cmp(&self, a: &T, b: &T) -> Ordering {
         b.cmp(a)
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Blanket implementations
+// ----------------------------------------------------------------------------
+
+impl<T, F> Comparator<T> for F
+where
+    F: Fn(&T, &T) -> Ordering,
+{
+    #[inline]
+    fn cmp(&self, a: &T, b: &T) -> Ordering {
+        self(a, b)
     }
 }
