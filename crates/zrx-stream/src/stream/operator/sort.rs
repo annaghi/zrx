@@ -25,6 +25,8 @@
 
 //! Sort operator.
 
+use ahash::HashMap;
+use std::cmp::Ordering;
 use std::ops::Range;
 
 use zrx_scheduler::action::descriptor::Property;
@@ -33,7 +35,7 @@ use zrx_scheduler::action::Descriptor;
 use zrx_scheduler::effect::Item;
 use zrx_scheduler::{Id, Value};
 use zrx_store::decorator::Indexed;
-use zrx_store::Store;
+use zrx_store::{Comparator, Store};
 
 use crate::stream::value::Position;
 use crate::stream::Stream;
@@ -45,12 +47,12 @@ use super::{Operator, OperatorExt};
 // ----------------------------------------------------------------------------
 
 /// Sort operator.
-struct Sort<I, T>
+struct Sort<I, T, C>
 where
     I: Id,
 {
     /// Store of items.
-    store: Indexed<I, T>,
+    store: Indexed<I, T, HashMap<I, T>, C>,
 }
 
 // ----------------------------------------------------------------------------
@@ -65,16 +67,38 @@ where
     pub fn sort(&self) -> Stream<I, Position<T>> {
         self.with_operator(Sort { store: Indexed::default() })
     }
+
+    pub fn sort_with<F>(&self, f: F) -> Stream<I, Position<T>>
+    where
+        F: Fn(&T, &T) -> Ordering + 'static,
+    {
+        self.with_operator(Sort {
+            store: Indexed::with_comparator(f),
+        })
+    }
+
+    pub fn sort_by<F, K>(&self, f: F) -> Stream<I, Position<T>>
+    where
+        F: Fn(&T) -> K + 'static,
+        K: Ord,
+    {
+        self.with_operator(Sort {
+            store: Indexed::with_comparator(move |a: &T, b: &T| {
+                f(a).cmp(&f(b))
+            }),
+        })
+    }
 }
 
 // ----------------------------------------------------------------------------
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl<I, T> Operator<I, T> for Sort<I, T>
+impl<I, T, C> Operator<I, T> for Sort<I, T, C>
 where
     I: Id,
     T: Value + Clone + Ord,
+    C: Comparator<T>,
 {
     type Item<'a> = Item<&'a I, Option<&'a T>>;
 
