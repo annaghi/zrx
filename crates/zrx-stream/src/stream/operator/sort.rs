@@ -25,7 +25,6 @@
 
 //! Sort operator.
 
-use std::cmp::Ordering;
 use std::ops::Range;
 
 use zrx_scheduler::action::descriptor::Property;
@@ -65,23 +64,6 @@ where
 {
     pub fn sort(&self) -> Stream<I, Position<T>> {
         self.with_operator(Sort { store: Indexed::default() })
-    }
-
-    pub fn sort_with<F>(&self, f: F) -> Stream<I, Position<T>>
-    where
-        F: Fn(&T, &T) -> Ordering + 'static,
-    {
-        self.with_operator(Sort { store: Indexed::with_order(f) })
-    }
-
-    pub fn sort_by<F, K>(&self, f: F) -> Stream<I, Position<T>>
-    where
-        F: Fn(&T) -> K + 'static,
-        K: Ord,
-    {
-        self.with_operator(Sort {
-            store: Indexed::with_order(move |a, b| f(a).cmp(&f(b))),
-        })
     }
 }
 
