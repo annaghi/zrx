@@ -162,17 +162,31 @@ where
     }
 
     /// Removes the given key-value pair from the ordering.
-    fn remove_ordering<Q>(&mut self, value: &V, key: &Q)
+    fn remove_ordering<Q>(&mut self, value: V, key: &Q) -> V
     where
         K: Borrow<Q>,
         Q: Key,
     {
-        if let Some(keys) = self.ordering.get_mut(value) {
+        // Technically, `Comparable<T, C>` implements `Borrow<T>`, which means
+        // that querying or removing the value from the map that manages all of
+        // the orderings should work without problems. However, for some reason,
+        // it doesn't, as the values don't match. All efforts to reproduce and
+        // debug this issue have failed so far, as it works perfectly when done
+        // with a mint `BTreeMap`. Thus, we temporarily just wrap the value and
+        // remove it from the map that way, and then unpack it again and return
+        // it, so it can be returned by the calling method. In case we find out
+        // why this happened, we can revert the exact commit that introduced
+        // this workaround to fix the issue.
+        let value = Comparable::new(value, self.comparator.clone());
+        if let Some(keys) = self.ordering.get_mut(&value) {
             keys.retain(|check| check.borrow() != key);
             if keys.is_empty() {
-                self.ordering.remove(value);
+                self.ordering.remove(&value);
             }
         }
+
+        // Unpack and return value
+        value.into_inner()
     }
 }
 
@@ -264,7 +278,7 @@ where
     #[inline]
     fn insert(&mut self, key: K, value: V) -> Option<V> {
         if let Some(prior) = self.store.insert(key.clone(), value.clone()) {
-            self.remove_ordering(&prior, &key);
+            let prior = self.remove_ordering(prior, &key);
             self.update_ordering(value, key);
             Some(prior)
         } else {
@@ -295,8 +309,10 @@ where
         K: Borrow<Q>,
         Q: Key,
     {
-        self.store.remove(key).inspect(|value| {
-            self.remove_ordering(value, key);
+        self.store.remove(key).map(|value| {
+            // We remove the prior ordering entry, and then return the value -
+            // see the comment in the called function for why this is necessary
+            self.remove_ordering(value, key)
         })
     }
 
@@ -322,8 +338,9 @@ where
         K: Borrow<Q>,
         Q: Key,
     {
-        self.store.remove_entry(key).inspect(|(key, value)| {
-            self.remove_ordering(value, key.borrow());
+        self.store.remove_entry(key).map(|(key, value)| {
+            let value = self.remove_ordering(value, key.borrow());
+            (key, value)
         })
     }
 
