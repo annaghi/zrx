@@ -172,7 +172,7 @@ where
     pub fn set_deadline(
         &mut self, key: &K, deadline: Instant,
     ) -> Option<Instant> {
-        self.store.get(key).cloned().and_then(|mut item| {
+        self.store.remove(key).and_then(|mut item| {
             item.set_deadline(deadline);
             self.store
                 .insert(key.clone(), item)
@@ -686,9 +686,9 @@ where
 
 impl<K, V, S> fmt::Debug for Queue<K, V, S>
 where
-    K: Key + fmt::Debug,
+    K: fmt::Debug + Key,
     V: fmt::Debug,
-    S: Store<K, Item> + fmt::Debug,
+    S: fmt::Debug + Store<K, Item>,
 {
     /// Formats the queue for debugging.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

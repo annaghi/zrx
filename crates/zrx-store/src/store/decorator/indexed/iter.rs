@@ -23,89 +23,107 @@
 
 // ----------------------------------------------------------------------------
 
-//! Iterator over a topological traversal.
+//! Iterator over an indexing decorator.
 
-use super::Traversal;
+use std::marker::PhantomData;
+use std::vec;
+
+use crate::store::{Key, StoreMut};
+
+use super::Indexed;
 
 // ----------------------------------------------------------------------------
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Iterator over a topological traversal.
-///
-/// This iterator consumes a [`Traversal`], emitting nodes in topological order.
-/// It offers a simplified API for synchronous iteration if nodes don't need to
-/// be deliberately completed, but can be considered done once the iterator
-/// has emitted them.
+/// Iterator over an indexing decorator.
 #[derive(Debug)]
-pub struct IntoIter {
-    /// Traversal.
-    traversal: Traversal,
+pub struct IntoIter<K, V, S> {
+    /// Underlying store.
+    store: S,
+    /// Ordering of values.
+    ordering: vec::IntoIter<K>,
+    /// Marker for types.
+    marker: PhantomData<V>,
 }
 
 // ----------------------------------------------------------------------------
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl IntoIterator for Traversal {
-    type Item = usize;
-    type IntoIter = IntoIter;
+impl<K, V, S, C> IntoIterator for Indexed<K, V, S, C>
+where
+    K: Key,
+    S: StoreMut<K, V>,
+{
+    type Item = (K, V);
+    type IntoIter = IntoIter<K, V, S>;
 
-    /// Creates an iterator over a topological traversal.
+    /// Creates an iterator over the store.
     ///
-    /// This consumes the traversal and produces an iterator that automatically
-    /// completes each node after emitting it, allowing for convenient use in
-    /// for loops and iterator chains.
+    /// This method consumes the store, and collects it into a vector, since
+    /// there's currently no way to implement this due to the absence of ATPIT
+    /// (associated type position impl trait) support in stable Rust. When the
+    /// feature is stabilized, we can switch to a more efficient approach.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use std::error::Error;
-    /// # fn main() -> Result<(), Box<dyn Error>> {
-    /// use zrx_graph::Graph;
+    /// use zrx_store::decorator::Indexed;
+    /// use zrx_store::StoreMut;
     ///
-    /// // Create graph builder and add nodes
-    /// let mut builder = Graph::builder();
-    /// let a = builder.add_node("a");
-    /// let b = builder.add_node("b");
-    /// let c = builder.add_node("c");
+    /// // Create store and initial state
+    /// let mut store = Indexed::default();
+    /// store.insert("key", 42);
     ///
-    /// // Create edges between nodes
-    /// builder.add_edge(a, b, 0)?;
-    /// builder.add_edge(b, c, 0)?;
-    ///
-    /// // Create graph from builder
-    /// let graph = builder.build();
-    ///
-    /// // Create iterator over topological traversal
-    /// for node in graph.traverse([a]) {
-    ///     println!("{node:?}");
+    /// // Create iterator over the store
+    /// for (key, value) in store {
+    ///     println!("{key}: {value}");
     /// }
-    /// # Ok(())
-    /// # }
     /// ```
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
-        IntoIter { traversal: self }
+        IntoIter {
+            store: self.store,
+            ordering: self.ordering.into_iter(),
+            marker: PhantomData,
+        }
     }
 }
 
 // ----------------------------------------------------------------------------
 
-impl Iterator for IntoIter {
-    type Item = usize;
+impl<K, V, S> Iterator for IntoIter<K, V, S>
+where
+    K: Key,
+    S: StoreMut<K, V>,
+{
+    type Item = (K, V);
 
-    /// Returns the next node.
+    /// Returns the next item.
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        let node = self.traversal.take()?;
-        self.traversal.complete(node).expect("invariant");
-        Some(node)
+        match self.ordering.next() {
+            Some(key) => self.store.remove(&key).map(|value| (key, value)),
+            None => None,
+        }
     }
 
-    /// Returns the bounds on the remaining length of the traversal.
+    /// Returns the bounds on the remaining length of the iterator.
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.traversal.len(), None)
+        self.ordering.size_hint()
+    }
+}
+
+impl<K, V, S> ExactSizeIterator for IntoIter<K, V, S>
+where
+    K: Key,
+    S: StoreMut<K, V>,
+{
+    /// Returns the exact remaining length of the iterator.
+    #[inline]
+    fn len(&self) -> usize {
+        self.ordering.len()
     }
 }

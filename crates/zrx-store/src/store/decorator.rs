@@ -25,9 +25,9 @@
 
 //! Store decorators.
 
-mod changed;
-mod indexed;
-mod ordered;
+pub mod changed;
+pub mod indexed;
+pub mod ordered;
 
 pub use changed::Changed;
 pub use indexed::Indexed;
