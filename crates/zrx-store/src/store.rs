@@ -33,7 +33,6 @@ mod collection;
 pub mod decorator;
 mod key;
 pub mod order;
-pub mod util;
 
 pub use key::Key;
 

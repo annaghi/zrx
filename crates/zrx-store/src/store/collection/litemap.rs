@@ -28,11 +28,12 @@
 use litemap::{store, LiteMap};
 use std::borrow::Borrow;
 
-use crate::store::util::update_if_changed;
 use crate::store::{
     Key, Store, StoreIterable, StoreIterableMut, StoreKeys, StoreMut,
     StoreMutRef, StoreValues,
 };
+
+use super::update_if_changed;
 
 // ----------------------------------------------------------------------------
 // Trait implementations
