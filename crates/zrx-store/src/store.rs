@@ -30,7 +30,7 @@ use std::ops::RangeBounds;
 
 pub mod behavior;
 mod collection;
-pub mod compare;
+pub mod comparator;
 pub mod decorator;
 mod key;
 

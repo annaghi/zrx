@@ -33,6 +33,7 @@ use std::marker::PhantomData;
 use std::ops::{Bound, Index, Range, RangeBounds};
 use std::vec::IntoIter;
 
+use crate::store::comparator::{Ascending, Comparator};
 use crate::store::{
     Key, Store, StoreIterable, StoreKeys, StoreMut, StoreValues,
 };
@@ -41,7 +42,7 @@ use crate::store::{
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Indexing decorator, adding index and range access.
+/// Indexing decorator, adding index and range access to a store.
 ///
 /// Sometimes, it's useful to have an ordered index over a store, which allows
 /// to access values by their offset, as well as to iterate over the store in
@@ -93,7 +94,7 @@ use crate::store::{
 ///     println!("{key}: {value}");
 /// }
 /// ```
-pub struct Indexed<K, V, S = HashMap<K, V>>
+pub struct Indexed<K, V, S = HashMap<K, V>, C = Ascending>
 where
     K: Key,
     S: Store<K, V>,
@@ -102,6 +103,8 @@ where
     store: S,
     /// Ordering of values.
     ordering: Vec<K>,
+    /// Comparator.
+    comparator: C,
     /// Marker for types.
     marker: PhantomData<V>,
 }
@@ -129,14 +132,47 @@ where
     /// let mut store = Indexed::<_, _, HashMap<_, _>>::new();
     /// store.insert("key", 42);
     /// ```
+    #[inline]
     #[must_use]
     pub fn new() -> Self
+    where
+        S: Default,
+    {
+        Self::with_comparator(Ascending)
+    }
+}
+
+impl<K, V, S, C> Indexed<K, V, S, C>
+where
+    K: Key,
+    V: Ord,
+    S: Store<K, V>,
+    C: Comparator<V>,
+{
+    /// Creates an ordering decorator over a store with the given comparator.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::HashMap;
+    /// use zrx_store::comparator::Descending;
+    /// use zrx_store::decorator::Indexed;
+    /// use zrx_store::StoreMut;
+    ///
+    /// // Create store and initial state
+    /// let mut store: Indexed::<_, _, HashMap<_, _>, _> =
+    ///     Indexed::with_comparator(Descending);
+    /// store.insert("key", 42);
+    /// ```
+    #[must_use]
+    pub fn with_comparator(comparator: C) -> Self
     where
         S: Default,
     {
         Self {
             store: S::default(),
             ordering: Vec::new(),
+            comparator,
             marker: PhantomData,
         }
     }
@@ -213,7 +249,8 @@ where
         // the index ordered at all times.
         self.ordering.binary_search_by(|check| {
             let check = check.borrow();
-            match self.store.get(check).expect("invariant").cmp(value) {
+            let prior = self.store.get(check).expect("invariant");
+            match self.comparator.cmp(prior, value) {
                 Ordering::Equal => check.cmp(key),
                 ordering => ordering,
             }
@@ -251,11 +288,12 @@ where
     }
 }
 
-impl<K, V, S> Indexed<K, V, S>
+impl<K, V, S, C> Indexed<K, V, S, C>
 where
     K: Key,
     V: Ord,
     S: StoreMut<K, V>,
+    C: Comparator<V>,
 {
     /// Inserts the value identified by the key.
     ///
@@ -369,7 +407,7 @@ where
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> Store<K, V> for Indexed<K, V, S>
+impl<K, V, S, C> Store<K, V> for Indexed<K, V, S, C>
 where
     K: Key,
     S: Store<K, V>,
@@ -431,11 +469,12 @@ where
     }
 }
 
-impl<K, V, S> StoreMut<K, V> for Indexed<K, V, S>
+impl<K, V, S, C> StoreMut<K, V> for Indexed<K, V, S, C>
 where
     K: Key,
     V: Ord,
     S: StoreMut<K, V>,
+    C: Comparator<V>,
 {
     /// Inserts the value identified by the key.
     ///
@@ -575,7 +614,7 @@ where
     }
 }
 
-impl<K, V, S> StoreIterable<K, V> for Indexed<K, V, S>
+impl<K, V, S, C> StoreIterable<K, V> for Indexed<K, V, S, C>
 where
     K: Key,
     S: StoreIterable<K, V>,
@@ -609,7 +648,7 @@ where
     }
 }
 
-impl<K, V, S> StoreKeys<K, V> for Indexed<K, V, S>
+impl<K, V, S, C> StoreKeys<K, V> for Indexed<K, V, S, C>
 where
     K: Key,
     S: StoreKeys<K, V>,
@@ -640,7 +679,7 @@ where
     }
 }
 
-impl<K, V, S> StoreValues<K, V> for Indexed<K, V, S>
+impl<K, V, S, C> StoreValues<K, V> for Indexed<K, V, S, C>
 where
     K: Key,
     S: StoreValues<K, V>,
@@ -673,7 +712,7 @@ where
 
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> Index<usize> for Indexed<K, V, S>
+impl<K, V, S, C> Index<usize> for Indexed<K, V, S, C>
 where
     K: Key,
     S: Store<K, V>,
@@ -762,7 +801,7 @@ where
     }
 }
 
-impl<K, V, S> IntoIterator for Indexed<K, V, S>
+impl<K, V, S, C> IntoIterator for Indexed<K, V, S, C>
 where
     K: Key,
     S: StoreMut<K, V>,
@@ -809,7 +848,7 @@ where
 // ----------------------------------------------------------------------------
 
 #[allow(clippy::implicit_hasher)]
-impl<K, V> Default for Indexed<K, V, HashMap<K, V>>
+impl<K, V> Default for Indexed<K, V>
 where
     K: Key,
     V: Ord,
@@ -839,10 +878,11 @@ where
 
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> fmt::Debug for Indexed<K, V, S>
+impl<K, V, S, C> fmt::Debug for Indexed<K, V, S, C>
 where
     K: Key + fmt::Debug,
     S: Store<K, V> + fmt::Debug,
+    C: fmt::Debug,
 {
     /// Formats the indexing decorator for debugging.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

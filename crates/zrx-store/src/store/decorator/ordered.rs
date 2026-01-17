@@ -31,6 +31,7 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::vec::IntoIter;
 
+use crate::store::comparator::{Ascending, Comparable, Comparator};
 use crate::store::{
     Key, Store, StoreIterable, StoreKeys, StoreMut, StoreValues,
 };
@@ -39,7 +40,7 @@ use crate::store::{
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Ordering decorator, adding ordering.
+/// Ordering decorator, adding ordering to a store.
 ///
 /// This is a thin wrapper around [`Store`] which is optimized for maintaining
 /// a changing ordering of values, while also being able to identify and update
@@ -72,7 +73,7 @@ use crate::store::{
 ///     println!("{key}: {value}");
 /// }
 /// ```
-pub struct Ordered<K, V, S = HashMap<K, V>>
+pub struct Ordered<K, V, S = HashMap<K, V>, C = Ascending>
 where
     K: Key,
     S: Store<K, V>,
@@ -80,7 +81,9 @@ where
     /// Underlying store.
     store: S,
     /// Ordering of values.
-    ordering: BTreeMap<V, Vec<K>>,
+    ordering: BTreeMap<Comparable<V, C>, Vec<K>>,
+    /// Comparator.
+    comparator: C,
 }
 
 // ----------------------------------------------------------------------------
@@ -106,37 +109,84 @@ where
     /// let mut store = Ordered::<_, _, HashMap<_, _>>::new();
     /// store.insert("key", 42);
     /// ```
+    #[inline]
     #[must_use]
     pub fn new() -> Self
+    where
+        S: Default,
+    {
+        Self::with_comparator(Ascending)
+    }
+}
+
+impl<K, V, S, C> Ordered<K, V, S, C>
+where
+    K: Key,
+    V: Ord,
+    S: Store<K, V>,
+    C: Comparator<V> + Clone,
+{
+    /// Creates an ordering decorator over a store with the given comparator.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::HashMap;
+    /// use zrx_store::comparator::Descending;
+    /// use zrx_store::decorator::Ordered;
+    /// use zrx_store::StoreMut;
+    ///
+    /// // Create store and initial state
+    /// let mut store: Ordered::<_, _, HashMap<_, _>, _> =
+    ///     Ordered::with_comparator(Descending);
+    /// store.insert("key", 42);
+    /// ```
+    #[must_use]
+    pub fn with_comparator(comparator: C) -> Self
     where
         S: Default,
     {
         Self {
             store: S::default(),
             ordering: BTreeMap::new(),
+            comparator,
         }
     }
 
     /// Updates the given key-value pair in the ordering.
     fn update_ordering(&mut self, value: V, key: K) {
         self.ordering
-            .entry(value)
+            .entry(Comparable::new(value, self.comparator.clone()))
             .or_insert_with(|| Vec::with_capacity(1))
             .push(key);
     }
 
     /// Removes the given key-value pair from the ordering.
-    fn remove_ordering<Q>(&mut self, value: &V, key: &Q)
+    fn remove_ordering<Q>(&mut self, value: V, key: &Q) -> V
     where
         K: Borrow<Q>,
         Q: Key,
     {
-        if let Some(keys) = self.ordering.get_mut(value) {
+        // Technically, `Comparable<T, C>` implements `Borrow<T>`, which means
+        // that querying or removing the value from the map that manages all of
+        // the orderings should work without problems. However, for some reason,
+        // it doesn't, as the values don't match. All efforts to reproduce and
+        // debug this issue have failed so far, as it works perfectly when done
+        // with a mint `BTreeMap`. Thus, we temporarily just wrap the value and
+        // remove it from the map that way, and then unpack it again and return
+        // it, so it can be returned by the calling method. In case we find out
+        // why this happened, we can revert the exact commit that introduced
+        // this workaround to fix the issue.
+        let value = Comparable::new(value, self.comparator.clone());
+        if let Some(keys) = self.ordering.get_mut(&value) {
             keys.retain(|check| check.borrow() != key);
             if keys.is_empty() {
-                self.ordering.remove(value);
+                self.ordering.remove(&value);
             }
         }
+
+        // Unpack and return value
+        value.into_inner()
     }
 }
 
@@ -144,7 +194,7 @@ where
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> Store<K, V> for Ordered<K, V, S>
+impl<K, V, S, C> Store<K, V> for Ordered<K, V, S, C>
 where
     K: Key,
     S: Store<K, V>,
@@ -206,11 +256,12 @@ where
     }
 }
 
-impl<K, V, S> StoreMut<K, V> for Ordered<K, V, S>
+impl<K, V, S, C> StoreMut<K, V> for Ordered<K, V, S, C>
 where
     K: Key,
     V: Clone + Ord,
     S: StoreMut<K, V>,
+    C: Comparator<V> + Clone,
 {
     /// Inserts the value identified by the key.
     ///
@@ -227,7 +278,7 @@ where
     #[inline]
     fn insert(&mut self, key: K, value: V) -> Option<V> {
         if let Some(prior) = self.store.insert(key.clone(), value.clone()) {
-            self.remove_ordering(&prior, &key);
+            let prior = self.remove_ordering(prior, &key);
             self.update_ordering(value, key);
             Some(prior)
         } else {
@@ -258,8 +309,10 @@ where
         K: Borrow<Q>,
         Q: Key,
     {
-        self.store.remove(key).inspect(|value| {
-            self.remove_ordering(value, key);
+        self.store.remove(key).map(|value| {
+            // We remove the prior ordering entry, and then return the value -
+            // see the comment in the called function for why this is necessary
+            self.remove_ordering(value, key)
         })
     }
 
@@ -285,8 +338,9 @@ where
         K: Borrow<Q>,
         Q: Key,
     {
-        self.store.remove_entry(key).inspect(|(key, value)| {
-            self.remove_ordering(value, key.borrow());
+        self.store.remove_entry(key).map(|(key, value)| {
+            let value = self.remove_ordering(value, key.borrow());
+            (key, value)
         })
     }
 
@@ -313,7 +367,7 @@ where
     }
 }
 
-impl<K, V, S> StoreIterable<K, V> for Ordered<K, V, S>
+impl<K, V, S, C> StoreIterable<K, V> for Ordered<K, V, S, C>
 where
     K: Key,
     S: StoreIterable<K, V>,
@@ -341,13 +395,13 @@ where
         K: 'a,
         V: 'a,
     {
-        self.ordering
-            .iter()
-            .flat_map(|(value, keys)| keys.iter().map(move |key| (key, value)))
+        self.ordering.iter().flat_map(|(value, keys)| {
+            keys.iter().map(move |key| (key, &**value))
+        })
     }
 }
 
-impl<K, V, S> StoreKeys<K, V> for Ordered<K, V, S>
+impl<K, V, S, C> StoreKeys<K, V> for Ordered<K, V, S, C>
 where
     K: Key,
     S: StoreKeys<K, V>,
@@ -378,7 +432,7 @@ where
     }
 }
 
-impl<K, V, S> StoreValues<K, V> for Ordered<K, V, S>
+impl<K, V, S, C> StoreValues<K, V> for Ordered<K, V, S, C>
 where
     K: Key,
     S: StoreValues<K, V>,
@@ -405,7 +459,7 @@ where
     where
         V: 'a,
     {
-        self.ordering.keys()
+        self.ordering.keys().map(|compare| &**compare)
     }
 }
 
@@ -456,7 +510,7 @@ where
     }
 }
 
-impl<K, V, S> IntoIterator for Ordered<K, V, S>
+impl<K, V, S, C> IntoIterator for Ordered<K, V, S, C>
 where
     K: Key,
     V: Clone,
@@ -501,7 +555,7 @@ where
 // ----------------------------------------------------------------------------
 
 #[allow(clippy::implicit_hasher)]
-impl<K, V> Default for Ordered<K, V, HashMap<K, V>>
+impl<K, V> Default for Ordered<K, V>
 where
     K: Key,
     V: Ord,
@@ -531,7 +585,7 @@ where
 
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> fmt::Debug for Ordered<K, V, S>
+impl<K, V, S, C> fmt::Debug for Ordered<K, V, S, C>
 where
     K: Key + fmt::Debug,
     V: fmt::Debug,
@@ -542,6 +596,6 @@ where
         f.debug_struct("Order")
             .field("store", &self.store)
             .field("ordering", &self.ordering)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
