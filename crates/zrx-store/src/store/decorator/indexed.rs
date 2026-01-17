@@ -33,6 +33,7 @@ use std::marker::PhantomData;
 use std::ops::{Bound, Index, Range, RangeBounds};
 use std::vec::IntoIter;
 
+use crate::store::comparator::{Ascending, Comparable, Comparator};
 use crate::store::{
     Key, Store, StoreIterable, StoreKeys, StoreMut, StoreValues,
 };
@@ -93,7 +94,7 @@ use crate::store::{
 ///     println!("{key}: {value}");
 /// }
 /// ```
-pub struct Indexed<K, V, S = HashMap<K, V>>
+pub struct Indexed<K, V, S = HashMap<K, V>, C = Ascending>
 where
     K: Key,
     S: Store<K, V>,
@@ -103,18 +104,19 @@ where
     /// Ordering of values.
     ordering: Vec<K>,
     /// Marker for types.
-    marker: PhantomData<V>,
+    marker: PhantomData<Comparable<V, C>>,
 }
 
 // ----------------------------------------------------------------------------
 // Implementations
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> Indexed<K, V, S>
+impl<K, V, S, C> Indexed<K, V, S, C>
 where
     K: Key,
     V: Ord,
     S: Store<K, V>,
+    C: Comparator<V>,
 {
     /// Creates an indexing decorator over a store.
     ///
@@ -213,7 +215,7 @@ where
         // the index ordered at all times.
         self.ordering.binary_search_by(|check| {
             let check = check.borrow();
-            match self.store.get(check).expect("invariant").cmp(value) {
+            match C::cmp(self.store.get(check).expect("invariant"), value) {
                 Ordering::Equal => check.cmp(key),
                 ordering => ordering,
             }
@@ -251,11 +253,12 @@ where
     }
 }
 
-impl<K, V, S> Indexed<K, V, S>
+impl<K, V, S, C> Indexed<K, V, S, C>
 where
     K: Key,
     V: Ord,
     S: StoreMut<K, V>,
+    C: Comparator<V>,
 {
     /// Inserts the value identified by the key.
     ///
@@ -369,7 +372,7 @@ where
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> Store<K, V> for Indexed<K, V, S>
+impl<K, V, S, C> Store<K, V> for Indexed<K, V, S, C>
 where
     K: Key,
     S: Store<K, V>,
@@ -431,11 +434,12 @@ where
     }
 }
 
-impl<K, V, S> StoreMut<K, V> for Indexed<K, V, S>
+impl<K, V, S, C> StoreMut<K, V> for Indexed<K, V, S, C>
 where
     K: Key,
     V: Ord,
     S: StoreMut<K, V>,
+    C: Comparator<V>,
 {
     /// Inserts the value identified by the key.
     ///
@@ -575,7 +579,7 @@ where
     }
 }
 
-impl<K, V, S> StoreIterable<K, V> for Indexed<K, V, S>
+impl<K, V, S, C> StoreIterable<K, V> for Indexed<K, V, S, C>
 where
     K: Key,
     S: StoreIterable<K, V>,
@@ -609,7 +613,7 @@ where
     }
 }
 
-impl<K, V, S> StoreKeys<K, V> for Indexed<K, V, S>
+impl<K, V, S, C> StoreKeys<K, V> for Indexed<K, V, S, C>
 where
     K: Key,
     S: StoreKeys<K, V>,
@@ -640,7 +644,7 @@ where
     }
 }
 
-impl<K, V, S> StoreValues<K, V> for Indexed<K, V, S>
+impl<K, V, S, C> StoreValues<K, V> for Indexed<K, V, S, C>
 where
     K: Key,
     S: StoreValues<K, V>,
@@ -673,7 +677,7 @@ where
 
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> Index<usize> for Indexed<K, V, S>
+impl<K, V, S, C> Index<usize> for Indexed<K, V, S, C>
 where
     K: Key,
     S: Store<K, V>,
@@ -717,11 +721,12 @@ where
 
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> FromIterator<(K, V)> for Indexed<K, V, S>
+impl<K, V, S, C> FromIterator<(K, V)> for Indexed<K, V, S, C>
 where
     K: Key,
     V: Ord,
     S: StoreMut<K, V> + Default,
+    C: Comparator<V>,
 {
     /// Creates a store from an iterator.
     ///
@@ -762,7 +767,7 @@ where
     }
 }
 
-impl<K, V, S> IntoIterator for Indexed<K, V, S>
+impl<K, V, S, C> IntoIterator for Indexed<K, V, S, C>
 where
     K: Key,
     S: StoreMut<K, V>,
@@ -809,7 +814,7 @@ where
 // ----------------------------------------------------------------------------
 
 #[allow(clippy::implicit_hasher)]
-impl<K, V> Default for Indexed<K, V, HashMap<K, V>>
+impl<K, V> Default for Indexed<K, V>
 where
     K: Key,
     V: Ord,
@@ -839,7 +844,7 @@ where
 
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> fmt::Debug for Indexed<K, V, S>
+impl<K, V, S, C> fmt::Debug for Indexed<K, V, S, C>
 where
     K: Key + fmt::Debug,
     S: Store<K, V> + fmt::Debug,
@@ -849,6 +854,7 @@ where
         f.debug_struct("Indexed")
             .field("store", &self.store)
             .field("ordering", &self.ordering)
-            .finish_non_exhaustive()
+            .field("marker", &self.marker)
+            .finish()
     }
 }

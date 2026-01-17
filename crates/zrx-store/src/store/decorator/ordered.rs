@@ -31,6 +31,7 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::vec::IntoIter;
 
+use crate::store::comparator::{Ascending, Comparable, Comparator};
 use crate::store::{
     Key, Store, StoreIterable, StoreKeys, StoreMut, StoreValues,
 };
@@ -72,7 +73,7 @@ use crate::store::{
 ///     println!("{key}: {value}");
 /// }
 /// ```
-pub struct Ordered<K, V, S = HashMap<K, V>>
+pub struct Ordered<K, V, S = HashMap<K, V>, C = Ascending>
 where
     K: Key,
     S: Store<K, V>,
@@ -80,18 +81,19 @@ where
     /// Underlying store.
     store: S,
     /// Ordering of values.
-    ordering: BTreeMap<V, Vec<K>>,
+    ordering: BTreeMap<Comparable<V, C>, Vec<K>>,
 }
 
 // ----------------------------------------------------------------------------
 // Implementations
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> Ordered<K, V, S>
+impl<K, V, S, C> Ordered<K, V, S, C>
 where
     K: Key,
     V: Ord,
     S: Store<K, V>,
+    C: Comparator<V>,
 {
     /// Creates an ordering decorator over a store.
     ///
@@ -120,7 +122,7 @@ where
     /// Updates the given key-value pair in the ordering.
     fn update_ordering(&mut self, value: V, key: K) {
         self.ordering
-            .entry(value)
+            .entry(Comparable::from(value))
             .or_insert_with(|| Vec::with_capacity(1))
             .push(key);
     }
@@ -144,7 +146,7 @@ where
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> Store<K, V> for Ordered<K, V, S>
+impl<K, V, S, C> Store<K, V> for Ordered<K, V, S, C>
 where
     K: Key,
     S: Store<K, V>,
@@ -206,11 +208,12 @@ where
     }
 }
 
-impl<K, V, S> StoreMut<K, V> for Ordered<K, V, S>
+impl<K, V, S, C> StoreMut<K, V> for Ordered<K, V, S, C>
 where
     K: Key,
     V: Clone + Ord,
     S: StoreMut<K, V>,
+    C: Comparator<V>,
 {
     /// Inserts the value identified by the key.
     ///
@@ -313,7 +316,7 @@ where
     }
 }
 
-impl<K, V, S> StoreIterable<K, V> for Ordered<K, V, S>
+impl<K, V, S, C> StoreIterable<K, V> for Ordered<K, V, S, C>
 where
     K: Key,
     S: StoreIterable<K, V>,
@@ -341,13 +344,13 @@ where
         K: 'a,
         V: 'a,
     {
-        self.ordering
-            .iter()
-            .flat_map(|(value, keys)| keys.iter().map(move |key| (key, value)))
+        self.ordering.iter().flat_map(|(value, keys)| {
+            keys.iter().map(move |key| (key, &**value))
+        })
     }
 }
 
-impl<K, V, S> StoreKeys<K, V> for Ordered<K, V, S>
+impl<K, V, S, C> StoreKeys<K, V> for Ordered<K, V, S, C>
 where
     K: Key,
     S: StoreKeys<K, V>,
@@ -378,7 +381,7 @@ where
     }
 }
 
-impl<K, V, S> StoreValues<K, V> for Ordered<K, V, S>
+impl<K, V, S, C> StoreValues<K, V> for Ordered<K, V, S, C>
 where
     K: Key,
     S: StoreValues<K, V>,
@@ -405,17 +408,18 @@ where
     where
         V: 'a,
     {
-        self.ordering.keys()
+        self.ordering.keys().map(|compare| &**compare)
     }
 }
 
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> FromIterator<(K, V)> for Ordered<K, V, S>
+impl<K, V, S, C> FromIterator<(K, V)> for Ordered<K, V, S, C>
 where
     K: Key,
     V: Clone + Ord,
     S: StoreMut<K, V> + Default,
+    C: Comparator<V>,
 {
     /// Creates a store from an iterator.
     ///
@@ -456,7 +460,7 @@ where
     }
 }
 
-impl<K, V, S> IntoIterator for Ordered<K, V, S>
+impl<K, V, S, C> IntoIterator for Ordered<K, V, S, C>
 where
     K: Key,
     V: Clone,
@@ -501,7 +505,7 @@ where
 // ----------------------------------------------------------------------------
 
 #[allow(clippy::implicit_hasher)]
-impl<K, V> Default for Ordered<K, V, HashMap<K, V>>
+impl<K, V> Default for Ordered<K, V>
 where
     K: Key,
     V: Ord,
@@ -531,7 +535,7 @@ where
 
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> fmt::Debug for Ordered<K, V, S>
+impl<K, V, S, C> fmt::Debug for Ordered<K, V, S, C>
 where
     K: Key + fmt::Debug,
     V: fmt::Debug,

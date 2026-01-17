@@ -23,16 +23,57 @@
 
 // ----------------------------------------------------------------------------
 
-//! Store abstractions and utilities.
+//! Comparator.
 
-pub mod queue;
-mod store;
+use std::cmp::Ordering;
+use std::fmt::Debug;
 
-pub use store::behavior;
-pub use store::comparator::{self, Comparator};
-pub use store::decorator;
-pub use store::{
-    Key, Store, StoreFromIterator, StoreIntoIterator, StoreIterable,
-    StoreIterableMut, StoreKeys, StoreMut, StoreMutRef, StoreRange,
-    StoreValues,
-};
+mod comparable;
+
+pub use comparable::Comparable;
+
+// ----------------------------------------------------------------------------
+// Traits
+// ----------------------------------------------------------------------------
+
+/// Comparator.
+pub trait Comparator<T>: Debug {
+    /// Compares two values.
+    fn cmp(a: &T, b: &T) -> Ordering;
+}
+
+// ----------------------------------------------------------------------------
+// Structs
+// ----------------------------------------------------------------------------
+
+/// Comparator for ascending order.
+#[derive(Debug)]
+pub struct Ascending;
+
+/// Comparator for descending order.
+#[derive(Debug)]
+pub struct Descending;
+
+// ----------------------------------------------------------------------------
+// Trait implementations
+// ----------------------------------------------------------------------------
+
+impl<T> Comparator<T> for Ascending
+where
+    T: Ord,
+{
+    /// Compares two values in ascending order.
+    fn cmp(a: &T, b: &T) -> Ordering {
+        a.cmp(b)
+    }
+}
+
+impl<T> Comparator<T> for Descending
+where
+    T: Ord,
+{
+    /// Compares two values in descending order.
+    fn cmp(a: &T, b: &T) -> Ordering {
+        b.cmp(a)
+    }
+}

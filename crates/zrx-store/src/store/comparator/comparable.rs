@@ -23,130 +23,76 @@
 
 // ----------------------------------------------------------------------------
 
-//! Comparator.
+//! Comparable value.
 
+use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::fmt;
+use std::marker::PhantomData;
 use std::ops::Deref;
+
+use super::{Ascending, Comparator};
 
 // ----------------------------------------------------------------------------
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Comparator.
+/// Comparable value.
 ///
 /// This data type is a thin wrapper around a value of type `T`, which allows
-/// to set a custom function `F` to customize the ordering of values in stores.
+/// to set a custom comparator `C` to define the ordering of values in stores.
 /// It implements the [`Eq`], [`PartialEq`], [`Ord`] and [`PartialOrd`] traits,
 /// as well as [`Deref`], so the original value can be used transparently.
-///
-/// If `F` is a zero-sized type (ZST), and doesn't capture any variables, the
-/// runtime overhead is zero, as the compiler is able to optimize it away.
 ///
 /// # Examples
 ///
 /// ```
-/// use zrx_store::Compare;
-///
-/// // Create comparison function
-/// let f = |x: &i32, y: &i32| y.cmp(x);
+/// use zrx_store::comparator::Comparable;
 ///
 /// // Create and compare values
-/// let a = Compare(42, f);
-/// let b = Compare(84, f);
-/// assert!(a > b);
+/// let a: Comparable<_> = 42.into();
+/// let b: Comparable<_> = 84.into();
+/// assert!(a < b);
 /// ```
 #[derive(Clone)]
-pub struct Compare<T, F>(pub T, pub F);
+pub struct Comparable<T, C = Ascending>(T, PhantomData<C>);
 
 // ----------------------------------------------------------------------------
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl<T, F> PartialEq for Compare<T, F>
-where
-    T: Eq,
-{
-    /// Compares two values for equality.
+impl<T, C> From<T> for Comparable<T, C> {
+    /// Creates a comparable value from a value.
     ///
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::Compare;
+    /// use zrx_store::comparator::Comparable;
     ///
-    /// // Create comparison function
-    /// let f = |x: &i32, y: &i32| y.cmp(x);
-    ///
-    /// // Create and compare values
-    /// let a = Compare(42, f);
-    /// let b = Compare(42, f);
-    /// assert_eq!(a, b);
+    /// // Create comparable value from value
+    /// let value: Comparable<_> = 42.into();
+    /// assert_eq!(*value, 42);
     /// ```
     #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-
-impl<T, F> Eq for Compare<T, F> where T: Eq {}
-
-// ----------------------------------------------------------------------------
-
-impl<T, F> PartialOrd for Compare<T, F>
-where
-    T: Eq,
-    F: Fn(&T, &T) -> Ordering,
-{
-    /// Orders two values.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_store::Compare;
-    ///
-    /// // Create comparison function
-    /// let f = |x: &i32, y: &i32| y.cmp(x);
-    ///
-    /// // Create and compare values
-    /// let a = Compare(42, f);
-    /// let b = Compare(84, f);
-    /// assert!(a > b);
-    /// ```
-    #[inline]
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl<T, F> Ord for Compare<T, F>
-where
-    T: Eq,
-    F: Fn(&T, &T) -> Ordering,
-{
-    /// Orders two values.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_store::Compare;
-    ///
-    /// // Create comparison function
-    /// let f = |x: &i32, y: &i32| y.cmp(x);
-    ///
-    /// // Create and compare values
-    /// let a = Compare(42, f);
-    /// let b = Compare(84, f);
-    /// assert!(a > b);
-    /// ```
-    #[inline]
-    fn cmp(&self, other: &Self) -> Ordering {
-        (self.1)(&self.0, &other.0)
+    fn from(value: T) -> Self {
+        Comparable(value, PhantomData)
     }
 }
 
 // ----------------------------------------------------------------------------
 
-impl<T, F> Deref for Compare<T, F> {
+impl<T, C> Borrow<T> for Comparable<T, C>
+where
+    C: Comparator<T>,
+{
+    /// Borrows the wrapped value.
+    #[inline]
+    fn borrow(&self) -> &T {
+        &self.0
+    }
+}
+
+impl<T, C> Deref for Comparable<T, C> {
     type Target = T;
 
     /// Dereferences to the wrapped value.
@@ -158,7 +104,81 @@ impl<T, F> Deref for Compare<T, F> {
 
 // ----------------------------------------------------------------------------
 
-impl<T, F> fmt::Debug for Compare<T, F>
+impl<T, C> PartialEq for Comparable<T, C>
+where
+    T: Eq,
+{
+    /// Compares two values for equality.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_store::comparator::Comparable;
+    ///
+    /// // Create and compare values
+    /// let a: Comparable<_> = 42.into();
+    /// let b: Comparable<_> = 42.into();
+    /// assert_eq!(a, b);
+    /// ```
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl<T, C> Eq for Comparable<T, C> where T: Eq {}
+
+// ----------------------------------------------------------------------------
+
+impl<T, C> PartialOrd for Comparable<T, C>
+where
+    T: Eq,
+    C: Comparator<T>,
+{
+    /// Orders two values.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_store::comparator::Comparable;
+    ///
+    /// // Create and compare values
+    /// let a: Comparable<_> = 42.into();
+    /// let b: Comparable<_> = 84.into();
+    /// assert!(a < b);
+    /// ```
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<T, C> Ord for Comparable<T, C>
+where
+    T: Eq,
+    C: Comparator<T>,
+{
+    /// Orders two values.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_store::comparator::Comparable;
+    ///
+    /// // Create and compare values
+    /// let a: Comparable<_> = 42.into();
+    /// let b: Comparable<_> = 84.into();
+    /// assert!(a < b);
+    /// ```
+    #[inline]
+    fn cmp(&self, other: &Self) -> Ordering {
+        C::cmp(&self.0, &other.0)
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+impl<T, C> fmt::Debug for Comparable<T, C>
 where
     T: fmt::Debug,
 {
