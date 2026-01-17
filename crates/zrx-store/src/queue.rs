@@ -172,7 +172,7 @@ where
     pub fn set_deadline(
         &mut self, key: &K, deadline: Instant,
     ) -> Option<Instant> {
-        self.store.get(key).cloned().and_then(|mut item| {
+        self.store.remove(key).and_then(|mut item| {
             item.set_deadline(deadline);
             self.store
                 .insert(key.clone(), item)
