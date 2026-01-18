@@ -331,8 +331,10 @@ where
     ///
     /// This method only updates the data of the [`Item`], but does not change
     /// the values of [`Item::deadline`] in case the item already exists. The
-    /// caller might use [`Queue::insert_if_changed`] to check, if any of those
-    /// values should be changed deliberately.
+    /// caller might use [`Queue::insert_if_changed`][] to check, if any of
+    /// those values should be changed deliberately.
+    ///
+    /// [`Queue::insert_if_changed`]: crate::store::StoreMut::insert_if_changed
     ///
     /// # Examples
     ///
