@@ -56,7 +56,7 @@ pub use iter::IntoIter;
 /// implemented, so updating and removing values is supported, while ensuring
 /// the ordering stays intact.
 ///
-/// Note that it's a good idea to use [`Indexed::default`], since it leverages
+/// Note that it's a good idea to use [`Indexed::default`][], since it leverages
 /// [`ahash`] as a [`BuildHasher`][], which is the fastest known hasher.
 ///
 /// __Warning__: the affected ranges for insertions and deletions only cover the
@@ -76,6 +76,7 @@ pub use iter::IntoIter;
 ///
 /// [`BTreeMap`]: std::collections::BTreeMap
 /// [`BuildHasher`]: std::hash::BuildHasher
+/// [`Indexed::default`]: Default::default
 /// [`Ordered`]: crate::store::decorator::Ordered
 /// [`StoreMutRef`]: crate::store::StoreMutRef
 ///

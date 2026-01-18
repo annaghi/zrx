@@ -661,12 +661,13 @@ impl<K, V> Default for Queue<K, V, HashMap<K, Item>>
 where
     K: Key,
 {
-    /// Creates a queue with [`HashMap::default`] as a store.
+    /// Creates a queue with [`HashMap::default`][] as a store.
     ///
     /// Note that this method does not allow to customize the [`BuildHasher`][],
     /// but uses [`ahash`] by default, which is the fastest known hasher.
     ///
     /// [`BuildHasher`]: std::hash::BuildHasher
+    /// [`HashMap::default`]: Default::default
     ///
     /// # Examples
     ///

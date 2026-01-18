@@ -52,11 +52,12 @@ pub use iter::IntoIter;
 ///
 /// This implementation uses a [`BTreeMap`] over a [`BinaryHeap`][], because the
 /// latter does not expose an efficient API for maintaining the heap invariant.
-/// Note that it's a good idea to use [`Ordered::default`], since it leverages
+/// Note that it's a good idea to use [`Ordered::default`][], since it leverages
 /// [`ahash`] as a [`BuildHasher`][], which is the fastest known hasher.
 ///
 /// [`BinaryHeap`]: std::collections::BinaryHeap
 /// [`BuildHasher`]: std::hash::BuildHasher
+/// [`Ordered::default`]: Default::default
 ///
 /// # Examples
 ///

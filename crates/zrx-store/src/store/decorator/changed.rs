@@ -49,10 +49,11 @@ use crate::store::{
 /// recorded chronologically, but always returned in random order, because of
 /// the use of [`HashSet`] as a data structure for change management.
 ///
-/// Note that it's a good idea to use [`Changed::default`], since it leverages
+/// Note that it's a good idea to use [`Changed::default`][], since it leverages
 /// [`ahash`] as a [`BuildHasher`][], which is the fastest known hasher.
 ///
 /// [`BuildHasher`]: std::hash::BuildHasher
+/// [`Changed::default`]: Default::default
 ///
 /// # Examples
 ///
@@ -579,12 +580,13 @@ impl<K, V> Default for Changed<K, V, HashMap<K, V>>
 where
     K: Key,
 {
-    /// Creates a tracking decorator with [`HashMap::default`] as a store.
+    /// Creates a tracking decorator with [`HashMap::default`][] as a store.
     ///
     /// Note that this method does not allow to customize the [`BuildHasher`][],
     /// but uses [`ahash`] by default, which is the fastest known hasher.
     ///
     /// [`BuildHasher`]: std::hash::BuildHasher
+    /// [`HashMap::default`]: Default::default
     ///
     /// # Examples
     ///
