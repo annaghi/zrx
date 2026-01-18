@@ -47,7 +47,7 @@ use super::Operator;
 struct DeltaMap<F, U> {
     /// Operator function.
     function: F,
-    /// Type marker.
+    /// Capture types.
     marker: PhantomData<U>,
 }
 

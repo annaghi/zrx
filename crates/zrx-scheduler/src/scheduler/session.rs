@@ -63,7 +63,7 @@ pub struct Session<I, T> {
     id: usize,
     /// Item submission sender.
     sender: Sender<Message<I>>,
-    /// Type marker.
+    /// Capture types.
     marker: PhantomData<T>,
 }
 

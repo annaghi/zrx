@@ -44,7 +44,7 @@ use super::{Operator, OperatorExt};
 
 /// Transpose operator.
 struct Transpose<T> {
-    /// Type marker.
+    /// Capture types.
     marker: PhantomData<T>,
 }
 

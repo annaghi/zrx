@@ -44,7 +44,7 @@ use super::Operator;
 
 /// Intersection operator.
 struct Intersection<T> {
-    /// Type marker.
+    /// Capture types.
     marker: PhantomData<T>,
 }
 

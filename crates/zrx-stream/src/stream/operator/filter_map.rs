@@ -46,7 +46,7 @@ use super::{Operator, OperatorExt};
 struct FilterMap<F, U> {
     /// Operator function.
     function: F,
-    /// Type marker.
+    /// Capture types.
     marker: PhantomData<U>,
 }
 

@@ -81,7 +81,7 @@ where
     store: S,
     /// Keys of changed items.
     changes: HashSet<K>,
-    /// Marker for types.
+    /// Capture types.
     marker: PhantomData<V>,
 }
 

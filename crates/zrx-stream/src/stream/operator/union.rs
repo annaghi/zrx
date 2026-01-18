@@ -44,7 +44,7 @@ use super::Operator;
 
 /// Union operator.
 struct Union<T> {
-    /// Type marker.
+    /// Capture types.
     marker: PhantomData<T>,
 }
 

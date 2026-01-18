@@ -108,7 +108,7 @@ where
     ordering: Vec<K>,
     /// Comparator.
     comparator: C,
-    /// Marker for types.
+    /// Capture types.
     marker: PhantomData<V>,
 }
 

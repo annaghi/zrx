@@ -48,7 +48,7 @@ use super::Operator;
 
 /// Join operator.
 struct Join<T, P> {
-    /// Type marker.
+    /// Capture types.
     marker: PhantomData<(T, P)>,
 }
 
