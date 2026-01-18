@@ -223,7 +223,7 @@ where
 impl<K, V, S> StoreMut<K, V> for Changed<K, V, S>
 where
     K: Key,
-    S: StoreMut<K, V> + StoreKeys<K, V>,
+    S: StoreMut<K, V>,
 {
     /// Updates the value identified by the key.
     ///
@@ -336,8 +336,13 @@ where
 
     /// Clears the store, removing all items.
     ///
-    /// Unfortunately, this operation has O(n) compexity, as all keys need to
-    /// be recorded as changed, which requires iterating over the entire store.
+    /// Note that this also clears all recorded changes. In order to know which
+    /// which items are cleared, iterate over the store via [`Changed::keys`][]
+    /// or [`Changed::iter`][] before clearing the store, which emits all keys
+    /// as well as values, if necessary.
+    ///
+    /// [`Changed::iter`]: crate::store::StoreIterable::iter
+    /// [`Changed::keys`]: crate::store::StoreKeys::keys
     ///
     /// # Examples
     ///
@@ -354,11 +359,7 @@ where
     /// assert!(store.is_empty());
     /// ```
     fn clear(&mut self) {
-        for key in self.store.keys() {
-            if !self.changes.contains(key) {
-                self.changes.insert(key.clone());
-            }
-        }
+        self.changes.clear();
         self.store.clear();
     }
 }
