@@ -1,0 +1,387 @@
+// Copyright (c) 2025-2026 Zensical and contributors
+
+// SPDX-License-Identifier: MIT
+// All contributions are certified under the DCO
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to
+// deal in the Software without restriction, including without limitation the
+// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+// sell copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
+
+// ----------------------------------------------------------------------------
+
+//! Store implementations for `slab`.
+
+use slab::Slab;
+use std::borrow::Borrow;
+
+use crate::store::{
+    Key, Store, StoreIterable, StoreIterableMut, StoreKeys, StoreMut,
+    StoreMutRef, StoreValues,
+};
+
+// ----------------------------------------------------------------------------
+// Trait implementations
+// ----------------------------------------------------------------------------
+
+impl<K, V> Store<K, V> for Slab<(K, V)>
+where
+    K: Key,
+{
+    /// Returns a reference to the value identified by the key.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use slab::Slab;
+    /// use zrx_store::{Store, StoreMut};
+    ///
+    /// // Create store and initial state
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
+    ///
+    /// // Obtain reference to value
+    /// let value = Store::get(&store, &"key");
+    /// assert_eq!(value, Some(&42));
+    /// ```
+    #[inline]
+    fn get<Q>(&self, key: &Q) -> Option<&V>
+    where
+        K: Borrow<Q>,
+        Q: Key,
+    {
+        Slab::iter(self).find_map(|(_, (check, value))| {
+            (check.borrow() == key).then_some(value)
+        })
+    }
+
+    /// Returns whether the store contains the key.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use slab::Slab;
+    /// use zrx_store::{Store, StoreMut};
+    ///
+    /// // Create store and initial state
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
+    ///
+    /// // Ensure presence of key
+    /// let check = Store::contains_key(&store, &"key");
+    /// assert_eq!(check, true);
+    /// ```
+    #[inline]
+    fn contains_key<Q>(&self, key: &Q) -> bool
+    where
+        K: Borrow<Q>,
+        Q: Key,
+    {
+        Slab::iter(self).any(|(_, (check, _))| check.borrow() == key)
+    }
+
+    /// Returns the number of items in the store.
+    #[inline]
+    fn len(&self) -> usize {
+        Slab::len(self)
+    }
+}
+
+impl<K, V> StoreMut<K, V> for Slab<(K, V)>
+where
+    K: Key,
+{
+    /// Inserts the value identified by the key.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use slab::Slab;
+    /// use zrx_store::StoreMut;
+    ///
+    /// // Create store and insert value
+    /// let mut store = HashMap::new();
+    /// StoreMut::insert(&mut store, "key", 42);
+    /// ```
+    #[inline]
+    fn insert(&mut self, key: K, value: V) -> Option<V> {
+        for (_, (check, prior)) in self.iter_mut() {
+            if check == &key {
+                return Some(std::mem::replace(prior, value));
+            }
+        }
+
+        // Insert new entry
+        self.insert((key, value));
+        None
+    }
+
+    /// Removes the value identified by the key.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use slab::Slab;
+    /// use zrx_store::StoreMut;
+    ///
+    /// // Create store and initial state
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
+    ///
+    /// // Remove and return value
+    /// let value = StoreMut::remove(&mut store, &"key");
+    /// assert_eq!(value, Some(42));
+    /// ```
+    #[inline]
+    fn remove<Q>(&mut self, key: &Q) -> Option<V>
+    where
+        K: Borrow<Q>,
+        Q: Key,
+    {
+        self.remove_entry(key).map(|(_, value)| value)
+    }
+
+    /// Removes the value identified by the key and returns both.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use slab::Slab;
+    /// use zrx_store::StoreMut;
+    ///
+    /// // Create store and initial state
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
+    ///
+    /// // Remove and return entry
+    /// let entry = StoreMut::remove_entry(&mut store, &"key");
+    /// assert_eq!(entry, Some(("key", 42)));
+    /// ```
+    #[inline]
+    fn remove_entry<Q>(&mut self, key: &Q) -> Option<(K, V)>
+    where
+        K: Borrow<Q>,
+        Q: Key,
+    {
+        Slab::iter(self)
+            .position(|(_, (check, _))| check.borrow() == key)
+            .map(|index| self.remove(index))
+    }
+
+    /// Clears the store, removing all items.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use slab::Slab;
+    /// use zrx_store::StoreMut;
+    ///
+    /// // Create store and initial state
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
+    ///
+    /// // Clear store
+    /// StoreMut::clear(&mut store);
+    /// assert!(store.is_empty());
+    /// ```
+    #[inline]
+    fn clear(&mut self) {
+        Slab::clear(self);
+    }
+}
+
+impl<K, V> StoreMutRef<K, V> for Slab<(K, V)>
+where
+    K: Key,
+{
+    /// Returns a mutable reference to the value identified by the key.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use slab::Slab;
+    /// use zrx_store::{StoreMut, StoreMutRef};
+    ///
+    /// // Create store and initial state
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
+    ///
+    /// // Obtain mutable reference to value
+    /// let mut value = StoreMutRef::get_mut(&mut store, &"key");
+    /// assert_eq!(value, Some(&mut 42));
+    /// ```
+    #[inline]
+    fn get_mut<Q>(&mut self, key: &Q) -> Option<&mut V>
+    where
+        K: Borrow<Q>,
+        Q: Key,
+    {
+        Slab::iter_mut(self).find_map(|(_, entry)| {
+            (entry.0.borrow() == key).then_some(&mut entry.1)
+        })
+    }
+
+    /// Returns a mutable reference to the value or creates the default.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use slab::Slab;
+    /// use zrx_store::StoreMutRef;
+    ///
+    /// // Create store
+    /// let mut store = Slab::new();
+    /// # let _: Slab<(_, i32)> = store;
+    ///
+    /// // Obtain mutable reference to value
+    /// let value = StoreMutRef::get_or_insert_default(&mut store, &"key");
+    /// assert_eq!(value, &mut 0);
+    /// ```
+    #[inline]
+    fn get_or_insert_default(&mut self, key: &K) -> &mut V
+    where
+        V: Default,
+    {
+        let index = Slab::iter(self)
+            .position(|(_, (check, _))| check.borrow() == key)
+            .unwrap_or_else(|| Slab::insert(self, (key.clone(), V::default())));
+
+        // Return mutable reference
+        &mut self[index].1
+    }
+}
+
+impl<K, V> StoreIterable<K, V> for Slab<(K, V)>
+where
+    K: Key,
+{
+    /// Creates an iterator over the store.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use slab::Slab;
+    /// use zrx_store::{StoreIterable, StoreMut};
+    ///
+    /// // Create store and initial state
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
+    ///
+    /// // Create iterator over the store
+    /// for (key, value) in StoreIterable::iter(&store) {
+    ///     println!("{key}: {value}");
+    /// }
+    /// ```
+    #[inline]
+    fn iter<'a>(&'a self) -> impl Iterator<Item = (&'a K, &'a V)>
+    where
+        K: 'a,
+        V: 'a,
+    {
+        Slab::iter(self).map(|(_, (key, value))| (key, value))
+    }
+}
+
+impl<K, V> StoreIterableMut<K, V> for Slab<(K, V)>
+where
+    K: Key,
+{
+    /// Creates a mutable iterator over the store.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use slab::Slab;
+    /// use zrx_store::{StoreIterableMut, StoreMut};
+    ///
+    /// // Create store and initial state
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
+    ///
+    /// // Create iterator over the store
+    /// for (key, value) in StoreIterableMut::iter_mut(&mut store) {
+    ///     println!("{key}: {value}");
+    /// }
+    /// ```
+    #[inline]
+    fn iter_mut<'a>(&'a mut self) -> impl Iterator<Item = (&'a K, &'a mut V)>
+    where
+        K: 'a,
+        V: 'a,
+    {
+        Slab::iter_mut(self).map(|(_, (key, value))| (&*key, value))
+    }
+}
+
+impl<K, V> StoreKeys<K, V> for Slab<(K, V)>
+where
+    K: Key,
+{
+    /// Creates a key iterator over the store.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use slab::Slab;
+    /// use zrx_store::{StoreKeys, StoreMut};
+    ///
+    /// // Create store and initial state
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
+    ///
+    /// // Create iterator over the store
+    /// for key in StoreKeys::keys(&store) {
+    ///     println!("{key}");
+    /// }
+    /// ```
+    #[inline]
+    fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
+    where
+        K: 'a,
+    {
+        Slab::iter(self).map(|(_, (key, _))| key)
+    }
+}
+
+impl<K, V> StoreValues<K, V> for Slab<(K, V)>
+where
+    K: Key,
+{
+    /// Creates a key iterator over the store.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use slab::Slab;
+    /// use zrx_store::{StoreKeys, StoreMut};
+    ///
+    /// // Create store and initial state
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
+    ///
+    /// // Create iterator over the store
+    /// for key in StoreKeys::values(&store) {
+    ///     println!("{key}");
+    /// }
+    /// ```
+    #[inline]
+    fn values<'a>(&'a self) -> impl Iterator<Item = &'a V>
+    where
+        V: 'a,
+    {
+        Slab::iter(self).map(|(_, (_, value))| value)
+    }
+}
