@@ -113,7 +113,7 @@ where
     /// use zrx_store::StoreMut;
     ///
     /// // Create store and insert value
-    /// let mut store = HashMap::new();
+    /// let mut store = Slab::new();
     /// StoreMut::insert(&mut store, "key", 42);
     /// ```
     #[inline]
@@ -366,14 +366,14 @@ where
     ///
     /// ```
     /// use slab::Slab;
-    /// use zrx_store::{StoreKeys, StoreMut};
+    /// use zrx_store::{StoreValues, StoreMut};
     ///
     /// // Create store and initial state
     /// let mut store = Slab::new();
     /// StoreMut::insert(&mut store, "key", 42);
     ///
     /// // Create iterator over the store
-    /// for key in StoreKeys::values(&store) {
+    /// for key in StoreValues::values(&store) {
     ///     println!("{key}");
     /// }
     /// ```
