@@ -393,7 +393,6 @@ where
     fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
     where
         K: 'a,
-        V: 'a,
     {
         LiteMap::keys(self)
     }

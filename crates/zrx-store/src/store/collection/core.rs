@@ -378,7 +378,6 @@ where
     fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
     where
         K: 'a,
-        V: 'a,
     {
         HashMap::keys(self)
     }
@@ -748,7 +747,6 @@ where
     fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
     where
         K: 'a,
-        V: 'a,
     {
         BTreeMap::keys(self)
     }
