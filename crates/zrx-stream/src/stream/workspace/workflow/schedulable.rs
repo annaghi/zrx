@@ -47,7 +47,7 @@ use crate::stream::operator::Operator;
 pub struct Schedulable<O, T> {
     /// Operator.
     operator: O,
-    /// Type marker.
+    /// Capture types.
     marker: PhantomData<T>,
 }
 

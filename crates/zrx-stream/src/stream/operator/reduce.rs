@@ -53,7 +53,7 @@ struct Reduce<I, T, F, U> {
     function: F,
     /// Store of items.
     store: HashMap<I, T>,
-    /// Type marker.
+    /// Capture types.
     marker: PhantomData<U>,
 }
 

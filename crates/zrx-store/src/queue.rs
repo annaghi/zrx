@@ -331,8 +331,10 @@ where
     ///
     /// This method only updates the data of the [`Item`], but does not change
     /// the values of [`Item::deadline`] in case the item already exists. The
-    /// caller might use [`Queue::insert_if_changed`] to check, if any of those
-    /// values should be changed deliberately.
+    /// caller might use [`Queue::insert_if_changed`][] to check, if any of
+    /// those values should be changed deliberately.
+    ///
+    /// [`Queue::insert_if_changed`]: crate::store::StoreMut::insert_if_changed
     ///
     /// # Examples
     ///
@@ -659,12 +661,13 @@ impl<K, V> Default for Queue<K, V, HashMap<K, Item>>
 where
     K: Key,
 {
-    /// Creates a queue with [`HashMap::default`] as a store.
+    /// Creates a queue with [`HashMap::default`][] as a store.
     ///
     /// Note that this method does not allow to customize the [`BuildHasher`][],
     /// but uses [`ahash`] by default, which is the fastest known hasher.
     ///
     /// [`BuildHasher`]: std::hash::BuildHasher
+    /// [`HashMap::default`]: Default::default
     ///
     /// # Examples
     ///

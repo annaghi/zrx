@@ -51,7 +51,7 @@ struct DeltaReduce<I, T, F, U> {
     function: F,
     /// Store of items.
     store: HashMap<I, HashMap<I, T>>,
-    /// Type marker.
+    /// Capture types.
     marker: PhantomData<U>,
 }
 

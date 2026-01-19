@@ -47,7 +47,7 @@ use super::{Operator, OperatorExt};
 struct Audit<F, D> {
     /// Operator function.
     function: F,
-    /// Type marker.
+    /// Capture types.
     marker: PhantomData<D>,
 }
 

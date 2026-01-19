@@ -50,7 +50,7 @@ pub struct Stream<I, T> {
     id: usize,
     /// Associated workflow.
     workflow: Workflow<I>,
-    /// Type marker.
+    /// Capture types.
     marker: PhantomData<T>,
 }
 

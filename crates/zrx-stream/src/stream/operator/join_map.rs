@@ -51,7 +51,7 @@ use super::Operator;
 struct JoinMap<F, U, P> {
     /// Operator function.
     function: F,
-    /// Type marker.
+    /// Capture types.
     marker: PhantomData<(U, P)>,
 }
 

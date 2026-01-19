@@ -44,7 +44,7 @@ use super::Operator;
 
 /// Coalesce operator.
 struct Coalesce<T> {
-    /// Type marker.
+    /// Capture types.
     marker: PhantomData<T>,
 }
 

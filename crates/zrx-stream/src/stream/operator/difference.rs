@@ -44,7 +44,7 @@ use super::Operator;
 
 /// Difference operator.
 struct Difference<T> {
-    /// Type marker.
+    /// Capture types.
     marker: PhantomData<T>,
 }
 

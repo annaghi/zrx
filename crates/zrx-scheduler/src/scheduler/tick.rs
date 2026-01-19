@@ -49,7 +49,7 @@ pub struct Tick<I, S> {
     report: Report,
     /// Waiting deadline.
     deadline: Option<Instant>,
-    /// Type marker.
+    /// Capture types.
     marker: PhantomData<(I, S)>,
 }
 

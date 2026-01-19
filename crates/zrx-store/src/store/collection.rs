@@ -28,6 +28,7 @@
 mod core;
 #[cfg(feature = "litemap")]
 mod litemap;
+mod slab;
 
 // ----------------------------------------------------------------------------
 // Functions

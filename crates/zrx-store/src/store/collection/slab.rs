@@ -23,9 +23,9 @@
 
 // ----------------------------------------------------------------------------
 
-//! Store implementations for `litemap`.
+//! Store implementations for `slab`.
 
-use litemap::{store, LiteMap};
+use slab::Slab;
 use std::borrow::Borrow;
 
 use crate::store::{
@@ -33,31 +33,28 @@ use crate::store::{
     StoreMutRef, StoreValues,
 };
 
-use super::update_if_changed;
-
 // ----------------------------------------------------------------------------
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> Store<K, V> for LiteMap<K, V, S>
+impl<K, V> Store<K, V> for Slab<(K, V)>
 where
     K: Key,
-    S: store::Store<K, V>,
 {
     /// Returns a reference to the value identified by the key.
     ///
     /// # Examples
     ///
     /// ```
-    /// use litemap::LiteMap;
+    /// use slab::Slab;
     /// use zrx_store::{Store, StoreMut};
     ///
     /// // Create store and initial state
-    /// let mut store = LiteMap::new_vec();
-    /// store.insert("key", 42);
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
     ///
     /// // Obtain reference to value
-    /// let value = store.get(&"key");
+    /// let value = Store::get(&store, &"key");
     /// assert_eq!(value, Some(&42));
     /// ```
     #[inline]
@@ -66,7 +63,9 @@ where
         K: Borrow<Q>,
         Q: Key,
     {
-        LiteMap::get(self, key)
+        Slab::iter(self).find_map(|(_, (check, value))| {
+            (check.borrow() == key).then_some(value)
+        })
     }
 
     /// Returns whether the store contains the key.
@@ -74,15 +73,15 @@ where
     /// # Examples
     ///
     /// ```
-    /// use litemap::LiteMap;
+    /// use slab::Slab;
     /// use zrx_store::{Store, StoreMut};
     ///
     /// // Create store and initial state
-    /// let mut store = LiteMap::new_vec();
-    /// store.insert("key", 42);
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
     ///
     /// // Ensure presence of key
-    /// let check = store.contains_key(&"key");
+    /// let check = Store::contains_key(&store, &"key");
     /// assert_eq!(check, true);
     /// ```
     #[inline]
@@ -91,73 +90,43 @@ where
         K: Borrow<Q>,
         Q: Key,
     {
-        LiteMap::contains_key(self, key)
+        Slab::iter(self).any(|(_, (check, _))| check.borrow() == key)
     }
 
     /// Returns the number of items in the store.
     #[inline]
     fn len(&self) -> usize {
-        LiteMap::len(self)
+        Slab::len(self)
     }
 }
 
-impl<K, V, S> StoreMut<K, V> for LiteMap<K, V, S>
+impl<K, V> StoreMut<K, V> for Slab<(K, V)>
 where
     K: Key,
-    S: store::StoreMut<K, V>,
-    for<'a> S: store::StoreIterable<'a, K, V>,
 {
     /// Inserts the value identified by the key.
     ///
     /// # Examples
     ///
     /// ```
-    /// use litemap::LiteMap;
+    /// use slab::Slab;
     /// use zrx_store::StoreMut;
     ///
     /// // Create store and insert value
-    /// let mut store = LiteMap::new_vec();
-    /// store.insert("key", 42);
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
     /// ```
     #[inline]
     fn insert(&mut self, key: K, value: V) -> Option<V> {
-        LiteMap::insert(self, key, value)
-    }
+        for (_, (check, prior)) in self.iter_mut() {
+            if check == &key {
+                return Some(std::mem::replace(prior, value));
+            }
+        }
 
-    /// Inserts the value identified by the key if it changed.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use litemap::LiteMap;
-    /// use zrx_store::StoreMut;
-    ///
-    /// // Create store
-    /// let mut store = LiteMap::new_vec();
-    ///
-    /// // Insert value
-    /// let check = store.insert_if_changed(&"key", &42);
-    /// assert_eq!(check, true);
-    ///
-    /// // Ignore unchanged value
-    /// let check = store.insert_if_changed(&"key", &42);
-    /// assert_eq!(check, false);
-    ///
-    /// // Update value
-    /// let check = store.insert_if_changed(&"key", &84);
-    /// assert_eq!(check, true);
-    /// ```
-    #[inline]
-    fn insert_if_changed(&mut self, key: &K, value: &V) -> bool
-    where
-        V: Clone + Eq,
-    {
-        LiteMap::get_mut(self, key)
-            .map(|check| update_if_changed(check, value))
-            .unwrap_or_else(|| {
-                LiteMap::insert(self, key.clone(), value.clone());
-                true
-            })
+        // Insert new entry
+        self.insert((key, value));
+        None
     }
 
     /// Removes the value identified by the key.
@@ -165,15 +134,15 @@ where
     /// # Examples
     ///
     /// ```
-    /// use litemap::LiteMap;
+    /// use slab::Slab;
     /// use zrx_store::StoreMut;
     ///
     /// // Create store and initial state
-    /// let mut store = LiteMap::new_vec();
-    /// store.insert("key", 42);
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
     ///
     /// // Remove and return value
-    /// let value = store.remove(&"key");
+    /// let value = StoreMut::remove(&mut store, &"key");
     /// assert_eq!(value, Some(42));
     /// ```
     #[inline]
@@ -182,7 +151,7 @@ where
         K: Borrow<Q>,
         Q: Key,
     {
-        LiteMap::remove(self, key)
+        self.remove_entry(key).map(|(_, value)| value)
     }
 
     /// Removes the value identified by the key and returns both.
@@ -190,15 +159,15 @@ where
     /// # Examples
     ///
     /// ```
-    /// use litemap::LiteMap;
+    /// use slab::Slab;
     /// use zrx_store::StoreMut;
     ///
     /// // Create store and initial state
-    /// let mut store = LiteMap::new_vec();
-    /// store.insert("key", 42);
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
     ///
     /// // Remove and return entry
-    /// let entry = store.remove_entry(&"key");
+    /// let entry = StoreMut::remove_entry(&mut store, &"key");
     /// assert_eq!(entry, Some(("key", 42)));
     /// ```
     #[inline]
@@ -207,16 +176,9 @@ where
         K: Borrow<Q>,
         Q: Key,
     {
-        let key = self.keys().find_map(|check| {
-            // Litemap doesn't have a direct way to remove the entire entry, so
-            // we must somehow first obtain the owned version of the key without
-            // making our trait bounds more complex. Thus, we accept that this
-            // requires a linear search through all keys.
-            (check.borrow() == key).then(|| check.clone())
-        })?;
-
-        // Now we can remove the entry using the owned key, and return both
-        LiteMap::remove(self, key.borrow()).map(|value| (key, value))
+        Slab::iter(self)
+            .position(|(_, (check, _))| check.borrow() == key)
+            .map(|index| self.remove(index))
     }
 
     /// Clears the store, removing all items.
@@ -224,42 +186,41 @@ where
     /// # Examples
     ///
     /// ```
-    /// use litemap::LiteMap;
+    /// use slab::Slab;
     /// use zrx_store::StoreMut;
     ///
     /// // Create store and initial state
-    /// let mut store = LiteMap::new_vec();
-    /// store.insert("key", 42);
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
     ///
     /// // Clear store
-    /// store.clear();
+    /// StoreMut::clear(&mut store);
     /// assert!(store.is_empty());
     /// ```
     #[inline]
     fn clear(&mut self) {
-        LiteMap::clear(self);
+        Slab::clear(self);
     }
 }
 
-impl<K, V, S> StoreMutRef<K, V> for LiteMap<K, V, S>
+impl<K, V> StoreMutRef<K, V> for Slab<(K, V)>
 where
     K: Key,
-    S: store::StoreMut<K, V>,
 {
     /// Returns a mutable reference to the value identified by the key.
     ///
     /// # Examples
     ///
     /// ```
-    /// use litemap::LiteMap;
+    /// use slab::Slab;
     /// use zrx_store::{StoreMut, StoreMutRef};
     ///
     /// // Create store and initial state
-    /// let mut store = LiteMap::new_vec();
-    /// store.insert("key", 42);
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
     ///
     /// // Obtain mutable reference to value
-    /// let mut value = store.get_mut(&"key");
+    /// let mut value = StoreMutRef::get_mut(&mut store, &"key");
     /// assert_eq!(value, Some(&mut 42));
     /// ```
     #[inline]
@@ -268,7 +229,9 @@ where
         K: Borrow<Q>,
         Q: Key,
     {
-        LiteMap::get_mut(self, key)
+        Slab::iter_mut(self).find_map(|(_, entry)| {
+            (entry.0.borrow() == key).then_some(&mut entry.1)
+        })
     }
 
     /// Returns a mutable reference to the value or creates the default.
@@ -276,15 +239,15 @@ where
     /// # Examples
     ///
     /// ```
-    /// use litemap::LiteMap;
-    /// use zrx_store::{StoreMut, StoreMutRef};
+    /// use slab::Slab;
+    /// use zrx_store::StoreMutRef;
     ///
     /// // Create store
-    /// let mut store = LiteMap::new_vec();
-    /// # let _: LiteMap<_, i32> = store;
+    /// let mut store = Slab::new();
+    /// # let _: Slab<(_, i32)> = store;
     ///
     /// // Obtain mutable reference to value
-    /// let value = store.get_or_insert_default(&"key");
+    /// let value = StoreMutRef::get_or_insert_default(&mut store, &"key");
     /// assert_eq!(value, &mut 0);
     /// ```
     #[inline]
@@ -292,35 +255,33 @@ where
     where
         V: Default,
     {
-        // Unfortunately, there's no way to insert a value and obtain a mutable
-        // reference to it in one step, so we must use two operations. However,
-        // we can safely use expect here, as we've just inserted the key and
-        // know that it is present, unless the map panicked
-        LiteMap::try_insert(self, key.clone(), V::default());
-        LiteMap::get_mut(self, key).expect("invariant")
+        let index = Slab::iter(self)
+            .position(|(_, (check, _))| check.borrow() == key)
+            .unwrap_or_else(|| Slab::insert(self, (key.clone(), V::default())));
+
+        // Return mutable reference
+        &mut self[index].1
     }
 }
 
-impl<K, V, S> StoreIterable<K, V> for LiteMap<K, V, S>
+impl<K, V> StoreIterable<K, V> for Slab<(K, V)>
 where
     K: Key,
-    S: store::Store<K, V>,
-    for<'a> S: store::StoreIterable<'a, K, V>,
 {
     /// Creates an iterator over the store.
     ///
     /// # Examples
     ///
     /// ```
-    /// use litemap::LiteMap;
+    /// use slab::Slab;
     /// use zrx_store::{StoreIterable, StoreMut};
     ///
     /// // Create store and initial state
-    /// let mut store = LiteMap::new_vec();
-    /// store.insert("key", 42);
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
     ///
     /// // Create iterator over the store
-    /// for (key, value) in store.iter() {
+    /// for (key, value) in StoreIterable::iter(&store) {
     ///     println!("{key}: {value}");
     /// }
     /// ```
@@ -330,30 +291,28 @@ where
         K: 'a,
         V: 'a,
     {
-        LiteMap::iter(self)
+        Slab::iter(self).map(|(_, (key, value))| (key, value))
     }
 }
 
-impl<K, V, S> StoreIterableMut<K, V> for LiteMap<K, V, S>
+impl<K, V> StoreIterableMut<K, V> for Slab<(K, V)>
 where
     K: Key,
-    S: store::Store<K, V>,
-    for<'a> S: store::StoreIterableMut<'a, K, V>,
 {
     /// Creates a mutable iterator over the store.
     ///
     /// # Examples
     ///
     /// ```
-    /// use litemap::LiteMap;
+    /// use slab::Slab;
     /// use zrx_store::{StoreIterableMut, StoreMut};
     ///
     /// // Create store and initial state
-    /// let mut store = LiteMap::new_vec();
-    /// store.insert("key", 42);
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
     ///
     /// // Create iterator over the store
-    /// for (key, value) in store.iter_mut() {
+    /// for (key, value) in StoreIterableMut::iter_mut(&mut store) {
     ///     println!("{key}: {value}");
     /// }
     /// ```
@@ -363,29 +322,28 @@ where
         K: 'a,
         V: 'a,
     {
-        LiteMap::iter_mut(self)
+        Slab::iter_mut(self).map(|(_, (key, value))| (&*key, value))
     }
 }
 
-impl<K, V, S> StoreKeys<K, V> for LiteMap<K, V, S>
+impl<K, V> StoreKeys<K, V> for Slab<(K, V)>
 where
     K: Key,
-    for<'a> S: store::StoreIterable<'a, K, V>,
 {
     /// Creates a key iterator over the store.
     ///
     /// # Examples
     ///
     /// ```
-    /// use litemap::LiteMap;
+    /// use slab::Slab;
     /// use zrx_store::{StoreKeys, StoreMut};
     ///
     /// // Create store and initial state
-    /// let mut store = LiteMap::new_vec();
-    /// store.insert("key", 42);
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
     ///
     /// // Create iterator over the store
-    /// for key in store.keys() {
+    /// for key in StoreKeys::keys(&store) {
     ///     println!("{key}");
     /// }
     /// ```
@@ -394,30 +352,29 @@ where
     where
         K: 'a,
     {
-        LiteMap::keys(self)
+        Slab::iter(self).map(|(_, (key, _))| key)
     }
 }
 
-impl<K, V, S> StoreValues<K, V> for LiteMap<K, V, S>
+impl<K, V> StoreValues<K, V> for Slab<(K, V)>
 where
     K: Key,
-    for<'a> S: store::StoreIterable<'a, K, V>,
 {
-    /// Creates a value iterator over the store.
+    /// Creates a key iterator over the store.
     ///
     /// # Examples
     ///
     /// ```
-    /// use litemap::LiteMap;
-    /// use zrx_store::{StoreMut, StoreValues};
+    /// use slab::Slab;
+    /// use zrx_store::{StoreValues, StoreMut};
     ///
     /// // Create store and initial state
-    /// let mut store = LiteMap::new_vec();
-    /// store.insert("key", 42);
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
     ///
     /// // Create iterator over the store
-    /// for value in store.values() {
-    ///     println!("{value}");
+    /// for key in StoreValues::values(&store) {
+    ///     println!("{key}");
     /// }
     /// ```
     #[inline]
@@ -425,6 +382,6 @@ where
     where
         V: 'a,
     {
-        LiteMap::values(self)
+        Slab::iter(self).map(|(_, (_, value))| value)
     }
 }

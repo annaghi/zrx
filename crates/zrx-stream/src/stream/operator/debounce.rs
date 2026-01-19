@@ -47,7 +47,7 @@ use super::{Operator, OperatorExt};
 struct Debounce<F, D> {
     /// Operator function.
     function: F,
-    /// Type marker.
+    /// Capture types.
     marker: PhantomData<D>,
 }
 

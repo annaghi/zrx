@@ -51,7 +51,7 @@ use super::Operator;
 struct JoinFilter<F, P> {
     /// Operator function.
     function: F,
-    /// Type marker.
+    /// Capture types.
     marker: PhantomData<P>,
 }
 

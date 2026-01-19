@@ -43,7 +43,7 @@ pub struct IntoIter<K, V, S> {
     store: S,
     /// Ordering of values.
     ordering: vec::IntoIter<K>,
-    /// Marker for types.
+    /// Capture types.
     marker: PhantomData<V>,
 }
 
