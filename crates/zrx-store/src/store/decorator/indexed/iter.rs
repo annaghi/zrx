@@ -103,10 +103,12 @@ where
     /// Returns the next item.
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        match self.ordering.next() {
-            Some(key) => self.store.remove(&key).map(|value| (key, value)),
-            None => None,
+        if let Some(key) = self.ordering.next() {
+            return self.store.remove(&key).map(|value| (key, value));
         }
+
+        // No more items to return
+        None
     }
 
     /// Returns the bounds on the remaining length of the iterator.
