@@ -24,14 +24,18 @@
 
 use ahash::{HashMap, HashSet};
 use std::borrow::Borrow;
+use std::fmt;
 use std::marker::PhantomData;
 use std::ops::RangeBounds;
-use std::{fmt, mem};
 
 use crate::store::{
     Key, Store, StoreFromIterator, StoreIntoIterator, StoreIterable, StoreKeys,
     StoreMut, StoreRange, StoreValues,
 };
+
+mod changes;
+
+pub use changes::Changes;
 
 // ----------------------------------------------------------------------------
 // Structs
@@ -118,39 +122,6 @@ where
             changes: HashSet::default(),
             marker: PhantomData,
         }
-    }
-
-    /// Returns a change iterator over the store.
-    ///
-    /// This method returns an iterator over all changed keys since the last
-    /// call to this method. The iterator yields tuples of keys and optional
-    /// references to the corresponding values in the store, so if a key was
-    /// removed from the store, the value will be [`None`].
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_store::decorator::Changed;
-    /// use zrx_store::StoreMut;
-    ///
-    /// // Create store and initial state
-    /// let mut store = Changed::default();
-    /// store.insert("a", 4);
-    /// store.insert("b", 2);
-    /// store.insert("c", 3);
-    /// store.insert("d", 1);
-    ///
-    /// // Obtain changes from store
-    /// for (key, opt) in store.changes() {
-    ///     println!("{key}: {opt:?}");
-    /// }
-    /// ```
-    pub fn changes(&mut self) -> impl Iterator<Item = (K, Option<&V>)> {
-        let iter = mem::take(&mut self.changes).into_iter();
-        iter.map(|key| {
-            let opt = self.store.get(&key);
-            (key, opt)
-        })
     }
 }
 
@@ -465,6 +436,10 @@ where
     K: Key,
     S: StoreRange<K, V>,
 {
+    type Range<'a> = S::Range<'a>
+    where
+        Self: 'a;
+
     /// Creates a range iterator over the store.
     ///
     /// # Examples
@@ -485,11 +460,9 @@ where
     /// }
     /// ```
     #[inline]
-    fn range<'a, R>(&'a self, range: R) -> impl Iterator<Item = (&'a K, &'a V)>
+    fn range<R>(&self, range: R) -> Self::Range<'_>
     where
         R: RangeBounds<K>,
-        K: 'a,
-        V: 'a,
     {
         self.store.range(range)
     }

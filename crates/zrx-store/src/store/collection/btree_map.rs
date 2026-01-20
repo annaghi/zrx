@@ -26,7 +26,7 @@
 //! Store implementations for [`BTreeMap`].
 
 use std::borrow::Borrow;
-use std::collections::btree_map::{Iter, IterMut, Keys, Values};
+use std::collections::btree_map::{Iter, IterMut, Keys, Range, Values};
 use std::collections::BTreeMap;
 use std::ops::RangeBounds;
 
@@ -413,6 +413,10 @@ impl<K, V> StoreRange<K, V> for BTreeMap<K, V>
 where
     K: Key,
 {
+    type Range<'a> = Range<'a, K, V>
+    where
+        Self: 'a;
+
     /// Creates a range iterator over the store.
     ///
     /// # Examples
@@ -432,11 +436,9 @@ where
     /// }
     /// ```
     #[inline]
-    fn range<'a, R>(&'a self, range: R) -> impl Iterator<Item = (&'a K, &'a V)>
+    fn range<R>(&self, range: R) -> Self::Range<'_>
     where
         R: RangeBounds<K>,
-        K: 'a,
-        V: 'a,
     {
         BTreeMap::range(self, range)
     }
