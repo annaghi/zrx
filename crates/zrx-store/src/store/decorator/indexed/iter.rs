@@ -26,6 +26,7 @@
 //! Iterator over indexing decorator.
 
 use std::marker::PhantomData;
+use std::ops::{Bound, RangeBounds};
 use std::slice;
 
 use crate::store::{Key, Store, StoreIterable, StoreKeys, StoreValues};
@@ -54,6 +55,75 @@ pub struct Values<'a, K, V, S> {
     ordering: slice::Iter<'a, K>,
     /// Capture types.
     marker: PhantomData<V>,
+}
+
+// ----------------------------------------------------------------------------
+// Implementations
+// ----------------------------------------------------------------------------
+
+impl<K, V, S, C> Indexed<K, V, S, C>
+where
+    K: Key,
+    V: Ord,
+    S: Store<K, V>,
+{
+    /// Creates a range iterator over the store.
+    ///
+    /// This method is not implemented as part of [`StoreRange`][], because it
+    /// deviates from the trait, as it uses numeric indices instead of keys.
+    ///
+    /// [`StoreRange`]: crate::store::StoreRange
+    ///
+    /// # Panics
+    ///
+    /// Panics if the range is out of bounds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_store::decorator::Indexed;
+    /// use zrx_store::StoreMut;
+    ///
+    /// // Create store and initial state
+    /// let mut store = Indexed::default();
+    /// store.insert("a", 42);
+    /// store.insert("b", 22);
+    /// store.insert("c", 32);
+    /// store.insert("d", 12);
+    ///
+    /// // Create iterator over the store
+    /// for (key, value) in store.range(2..4) {
+    ///     println!("{key}: {value}");
+    /// }
+    /// ```
+    pub fn range<R>(&self, range: R) -> Iter<'_, K, V, S>
+    where
+        R: RangeBounds<usize>,
+    {
+        // Compute length
+        let len = self.ordering.len();
+
+        // Compute range start
+        let start = match range.start_bound() {
+            Bound::Included(&start) => start,
+            Bound::Excluded(&start) => start + 1,
+            Bound::Unbounded => 0,
+        };
+
+        // Compute range end
+        let end = match range.end_bound() {
+            Bound::Included(&end) => end + 1,
+            Bound::Excluded(&end) => end,
+            Bound::Unbounded => len,
+        };
+
+        // Create range iterator
+        Iter {
+            ordering: self.ordering[start..end].iter(),
+            store: &self.store,
+            marker: PhantomData,
+        }
+    }
 }
 
 // ----------------------------------------------------------------------------

@@ -30,7 +30,7 @@ use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::fmt;
 use std::marker::PhantomData;
-use std::ops::{Bound, Index, Range, RangeBounds};
+use std::ops::{Index, Range};
 
 use crate::store::comparator::{Ascending, Comparator};
 use crate::store::{Key, Store, StoreMut};
@@ -179,65 +179,6 @@ where
             comparator,
             marker: PhantomData,
         }
-    }
-
-    /// Creates a range iterator over the store.
-    ///
-    /// This method is not implemented as part of [`StoreRange`][], because it
-    /// deviates from the trait, as it uses numeric indices instead of keys.
-    ///
-    /// [`StoreRange`]: crate::store::StoreRange
-    ///
-    /// # Panics
-    ///
-    /// Panics if the range is out of bounds.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_store::decorator::Indexed;
-    /// use zrx_store::StoreMut;
-    ///
-    /// // Create store and initial state
-    /// let mut store = Indexed::default();
-    /// store.insert("a", 42);
-    /// store.insert("b", 22);
-    /// store.insert("c", 32);
-    /// store.insert("d", 12);
-    ///
-    /// // Create iterator over the store
-    /// for (key, value) in store.range(2..4) {
-    ///     println!("{key}: {value}");
-    /// }
-    /// ```
-    pub fn range<R>(&self, range: R) -> impl Iterator<Item = (&K, &V)>
-    where
-        R: RangeBounds<usize>,
-    {
-        // Compute length
-        let len = self.ordering.len();
-
-        // Compute range start
-        let start = match range.start_bound() {
-            Bound::Included(&start) => start,
-            Bound::Excluded(&start) => start + 1,
-            Bound::Unbounded => 0,
-        };
-
-        // Compute range end
-        let end = match range.end_bound() {
-            Bound::Included(&end) => end + 1,
-            Bound::Excluded(&end) => end,
-            Bound::Unbounded => len,
-        };
-
-        // We can safely use expect here, since we can be confident that there
-        // are values for all keys within the range. Furthermore, we limit the
-        // range start and end to the length of the ordering to provide a more
-        // convenient and ergonomic behavior.
-        self.ordering[start.min(len)..end.min(len)]
-            .iter()
-            .map(|key| (key, self.store.get(key).expect("invariant")))
     }
 
     /// Returns the position of the key-value pair in the ordering, or the
