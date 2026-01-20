@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Iterator over a topological traversal.
+//! Consuming iterator over topological traversal.
 
 use super::Traversal;
 
@@ -31,7 +31,7 @@ use super::Traversal;
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Iterator over a topological traversal.
+/// Consuming iterator over topological traversal.
 ///
 /// This iterator consumes a [`Traversal`], emitting nodes in topological order.
 /// It offers a simplified API for synchronous iteration if nodes don't need to
@@ -51,7 +51,7 @@ impl IntoIterator for Traversal {
     type Item = usize;
     type IntoIter = IntoIter;
 
-    /// Creates an iterator over a topological traversal.
+    /// Creates a consuming iterator over the topological traversal.
     ///
     /// This consumes the traversal and produces an iterator that automatically
     /// completes each node after emitting it, allowing for convenient use in

@@ -30,9 +30,9 @@ use std::collections::VecDeque;
 use super::error::{Error, Result};
 use super::topology::Topology;
 
-mod iter;
+mod into_iter;
 
-pub use iter::IntoIter;
+pub use into_iter::IntoIter;
 
 // ----------------------------------------------------------------------------
 // Structs
