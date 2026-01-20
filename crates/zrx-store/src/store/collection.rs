@@ -26,8 +26,6 @@
 //! Store implementations for collections.
 
 mod core;
-#[cfg(feature = "litemap")]
-mod litemap;
 mod slab;
 
 // ----------------------------------------------------------------------------
