@@ -29,6 +29,7 @@ pub mod queue;
 mod store;
 
 pub use store::behavior;
+pub use store::collection;
 pub use store::comparator::{self, Comparator};
 pub use store::decorator;
 pub use store::{

@@ -25,8 +25,9 @@
 
 //! Store implementations for collections.
 
-mod core;
-mod slab;
+mod btree_map;
+mod hash_map;
+pub mod slab;
 
 // ----------------------------------------------------------------------------
 // Functions

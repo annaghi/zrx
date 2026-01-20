@@ -29,7 +29,7 @@ use std::borrow::Borrow;
 use std::ops::RangeBounds;
 
 pub mod behavior;
-mod collection;
+pub mod collection;
 pub mod comparator;
 pub mod decorator;
 mod key;
@@ -223,11 +223,14 @@ pub trait StoreIterable<K, V>: Store<K, V>
 where
     K: Key,
 {
-    /// Creates an iterator over the store.
-    fn iter<'a>(&'a self) -> impl Iterator<Item = (&'a K, &'a V)>
+    type Iter<'a>: Iterator<Item = (&'a K, &'a V)>
     where
+        Self: 'a,
         K: 'a,
         V: 'a;
+
+    /// Creates an iterator over the store.
+    fn iter(&self) -> Self::Iter<'_>;
 }
 
 /// Mutable store that is iterable.
@@ -254,11 +257,14 @@ pub trait StoreIterableMut<K, V>: StoreMut<K, V>
 where
     K: Key,
 {
-    /// Creates a mutable iterator over the store.
-    fn iter_mut<'a>(&'a mut self) -> impl Iterator<Item = (&'a K, &'a mut V)>
+    type IterMut<'a>: Iterator<Item = (&'a K, &'a mut V)>
     where
+        Self: 'a,
         K: 'a,
         V: 'a;
+
+    /// Creates a mutable iterator over the store.
+    fn iter_mut(&mut self) -> Self::IterMut<'_>;
 }
 
 /// Immutable store that is iterable over its keys.
@@ -285,10 +291,13 @@ pub trait StoreKeys<K, V>: Store<K, V>
 where
     K: Key,
 {
-    /// Creates a key iterator over the store.
-    fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
+    type Keys<'a>: Iterator<Item = &'a K>
     where
+        Self: 'a,
         K: 'a;
+
+    /// Creates a key iterator over the store.
+    fn keys(&self) -> Self::Keys<'_>;
 }
 
 /// Immutable store that is iterable over its values.
@@ -315,10 +324,13 @@ pub trait StoreValues<K, V>: Store<K, V>
 where
     K: Key,
 {
-    /// Creates a value iterator over the store.
-    fn values<'a>(&'a self) -> impl Iterator<Item = &'a V>
+    type Values<'a>: Iterator<Item = &'a V>
     where
+        Self: 'a,
         V: 'a;
+
+    /// Creates a value iterator over the store.
+    fn values(&self) -> Self::Values<'_>;
 }
 
 /// Immutable store that is iterable over a range.

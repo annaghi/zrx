@@ -23,12 +23,12 @@
 
 // ----------------------------------------------------------------------------
 
-//! Iterator over an indexing decorator.
+//! Iterator over indexing decorator.
 
 use std::marker::PhantomData;
-use std::vec;
+use std::slice;
 
-use crate::store::{Key, StoreMut};
+use crate::store::{Key, Store, StoreIterable, StoreKeys, StoreValues};
 
 use super::Indexed;
 
@@ -36,13 +36,22 @@ use super::Indexed;
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Iterator over an indexing decorator.
-#[derive(Debug)]
-pub struct IntoIter<K, V, S> {
+/// Iterator over indexing decorator.
+pub struct Iter<'a, K, V, S> {
     /// Underlying store.
-    store: S,
+    store: &'a S,
     /// Ordering of values.
-    ordering: vec::IntoIter<K>,
+    ordering: slice::Iter<'a, K>,
+    /// Capture types.
+    marker: PhantomData<V>,
+}
+
+/// Value iterator over indexing decorator.
+pub struct Values<'a, K, V, S> {
+    /// Underlying store.
+    store: &'a S,
+    /// Ordering of values.
+    ordering: slice::Iter<'a, K>,
     /// Capture types.
     marker: PhantomData<V>,
 }
@@ -51,41 +60,105 @@ pub struct IntoIter<K, V, S> {
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl<K, V, S, C> IntoIterator for Indexed<K, V, S, C>
+impl<K, V, S, C> StoreIterable<K, V> for Indexed<K, V, S, C>
 where
     K: Key,
-    S: StoreMut<K, V>,
+    S: Store<K, V>,
 {
-    type Item = (K, V);
-    type IntoIter = IntoIter<K, V, S>;
+    type Iter<'a> = Iter<'a, K, V, S>
+    where
+        Self: 'a;
 
     /// Creates an iterator over the store.
-    ///
-    /// This method consumes the store, and collects it into a vector, since
-    /// there's currently no way to implement this due to the absence of ATPIT
-    /// (associated type position impl trait) support in stable Rust. When the
-    /// feature is stabilized, we can switch to a more efficient approach.
     ///
     /// # Examples
     ///
     /// ```
     /// use zrx_store::decorator::Indexed;
-    /// use zrx_store::StoreMut;
+    /// use zrx_store::{StoreIterable, StoreMut};
     ///
     /// // Create store and initial state
     /// let mut store = Indexed::default();
     /// store.insert("key", 42);
     ///
     /// // Create iterator over the store
-    /// for (key, value) in store {
+    /// for (key, value) in store.iter() {
     ///     println!("{key}: {value}");
     /// }
     /// ```
     #[inline]
-    fn into_iter(self) -> Self::IntoIter {
-        IntoIter {
-            store: self.store,
-            ordering: self.ordering.into_iter(),
+    fn iter(&self) -> Self::Iter<'_> {
+        Iter {
+            store: &self.store,
+            ordering: self.ordering.iter(),
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<K, V, S, C> StoreKeys<K, V> for Indexed<K, V, S, C>
+where
+    K: Key,
+    S: Store<K, V>,
+{
+    type Keys<'a> = Keys<'a, K>
+    where
+        Self: 'a;
+
+    /// Creates a key iterator over the store.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_store::decorator::Indexed;
+    /// use zrx_store::{StoreKeys, StoreMut};
+    ///
+    /// // Create store and initial state
+    /// let mut store = Indexed::default();
+    /// store.insert("key", 42);
+    ///
+    /// // Create iterator over the store
+    /// for key in store.keys() {
+    ///     println!("{key}");
+    /// }
+    /// ```
+    #[inline]
+    fn keys(&self) -> Self::Keys<'_> {
+        self.ordering.iter()
+    }
+}
+
+impl<K, V, S, C> StoreValues<K, V> for Indexed<K, V, S, C>
+where
+    K: Key,
+    S: Store<K, V>,
+{
+    type Values<'a> = Values<'a, K, V, S>
+    where
+        Self: 'a;
+
+    /// Creates a value iterator over the store.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_store::decorator::Indexed;
+    /// use zrx_store::{StoreMut, StoreValues};
+    ///
+    /// // Create store and initial state
+    /// let mut store = Indexed::default();
+    /// store.insert("key", 42);
+    ///
+    /// // Create iterator over the store
+    /// for value in store.values() {
+    ///     println!("{value}");
+    /// }
+    /// ```
+    #[inline]
+    fn values(&self) -> Self::Values<'_> {
+        Values {
+            store: &self.store,
+            ordering: self.ordering.iter(),
             marker: PhantomData,
         }
     }
@@ -93,22 +166,19 @@ where
 
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> Iterator for IntoIter<K, V, S>
+impl<'a, K, V, S> Iterator for Iter<'a, K, V, S>
 where
     K: Key,
-    S: StoreMut<K, V>,
+    V: 'a,
+    S: Store<K, V>,
 {
-    type Item = (K, V);
+    type Item = (&'a K, &'a V);
 
     /// Returns the next item.
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(key) = self.ordering.next() {
-            return self.store.remove(&key).map(|value| (key, value));
-        }
-
-        // No more items to return
-        None
+        let opt = self.ordering.next();
+        opt.and_then(|key| self.store.get(key).map(|value| (key, value)))
     }
 
     /// Returns the bounds on the remaining length of the iterator.
@@ -118,14 +188,31 @@ where
     }
 }
 
-impl<K, V, S> ExactSizeIterator for IntoIter<K, V, S>
+impl<'a, K, V, S> Iterator for Values<'a, K, V, S>
 where
     K: Key,
-    S: StoreMut<K, V>,
+    V: 'a,
+    S: Store<K, V>,
 {
-    /// Returns the exact remaining length of the iterator.
+    type Item = &'a V;
+
+    /// Returns the next item.
     #[inline]
-    fn len(&self) -> usize {
-        self.ordering.len()
+    fn next(&mut self) -> Option<Self::Item> {
+        let opt = self.ordering.next();
+        opt.and_then(|key| self.store.get(key))
+    }
+
+    /// Returns the bounds on the remaining length of the iterator.
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.ordering.size_hint()
     }
 }
+
+// ----------------------------------------------------------------------------
+// Type aliases
+// ----------------------------------------------------------------------------
+
+/// Key iterator over indexing decorator.
+pub type Keys<'a, K> = slice::Iter<'a, K>;

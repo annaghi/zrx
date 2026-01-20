@@ -31,13 +31,13 @@ use std::collections::BTreeMap;
 use std::fmt;
 
 use crate::store::comparator::{Ascending, Comparable, Comparator};
-use crate::store::{
-    Key, Store, StoreIterable, StoreKeys, StoreMut, StoreValues,
-};
+use crate::store::{Key, Store, StoreMut};
 
+mod into_iter;
 mod iter;
 
-pub use iter::IntoIter;
+pub use into_iter::IntoIter;
+pub use iter::{Iter, Keys, Values};
 
 // ----------------------------------------------------------------------------
 // Structs
@@ -368,102 +368,6 @@ where
     fn clear(&mut self) {
         self.store.clear();
         self.ordering.clear();
-    }
-}
-
-impl<K, V, S, C> StoreIterable<K, V> for Ordered<K, V, S, C>
-where
-    K: Key,
-    S: StoreIterable<K, V>,
-{
-    /// Creates an iterator over the store.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_store::decorator::Ordered;
-    /// use zrx_store::{StoreIterable, StoreMut};
-    ///
-    /// // Create store and initial state
-    /// let mut store = Ordered::default();
-    /// store.insert("key", 42);
-    ///
-    /// // Create iterator over the store
-    /// for (key, value) in store.iter() {
-    ///     println!("{key}: {value}");
-    /// }
-    /// ```
-    #[inline]
-    fn iter<'a>(&'a self) -> impl Iterator<Item = (&'a K, &'a V)>
-    where
-        K: 'a,
-        V: 'a,
-    {
-        self.ordering.iter().flat_map(|(value, keys)| {
-            keys.iter().map(move |key| (key, &**value))
-        })
-    }
-}
-
-impl<K, V, S, C> StoreKeys<K, V> for Ordered<K, V, S, C>
-where
-    K: Key,
-    S: StoreKeys<K, V>,
-{
-    /// Creates a key iterator over the store.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_store::decorator::Ordered;
-    /// use zrx_store::{StoreKeys, StoreMut};
-    ///
-    /// // Create store and initial state
-    /// let mut store = Ordered::default();
-    /// store.insert("key", 42);
-    ///
-    /// // Create iterator over the store
-    /// for key in store.keys() {
-    ///     println!("{key}");
-    /// }
-    /// ```
-    #[inline]
-    fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
-    where
-        K: 'a,
-    {
-        self.ordering.iter().flat_map(|(_, keys)| keys.iter())
-    }
-}
-
-impl<K, V, S, C> StoreValues<K, V> for Ordered<K, V, S, C>
-where
-    K: Key,
-    S: StoreValues<K, V>,
-{
-    /// Creates a value iterator over the store.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_store::decorator::Ordered;
-    /// use zrx_store::{StoreMut, StoreValues};
-    ///
-    /// // Create store and initial state
-    /// let mut store = Ordered::default();
-    /// store.insert("key", 42);
-    ///
-    /// // Create iterator over the store
-    /// for value in store.values() {
-    ///     println!("{value}");
-    /// }
-    /// ```
-    #[inline]
-    fn values<'a>(&'a self) -> impl Iterator<Item = &'a V>
-    where
-        V: 'a,
-    {
-        self.ordering.keys().map(|compare| &**compare)
     }
 }
 

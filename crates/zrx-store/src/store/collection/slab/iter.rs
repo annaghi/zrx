@@ -23,54 +23,51 @@
 
 // ----------------------------------------------------------------------------
 
-//! Iterator over ordering decorator.
+//! Store iterator implementations over [`Slab`].
 
-use std::collections::btree_map;
-use std::slice;
+use slab::Slab;
 
-use crate::store::comparator::{Ascending, Comparable};
-use crate::store::{Key, Store, StoreIterable, StoreKeys, StoreValues};
-
-use super::Ordered;
+use crate::store::{
+    Key, StoreIterable, StoreIterableMut, StoreKeys, StoreValues,
+};
 
 // ----------------------------------------------------------------------------
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Iterator over ordering decorator.
-pub struct Iter<'a, K, V, C = Ascending> {
-    /// Ordering of values.
-    ordering: btree_map::Iter<'a, Comparable<V, C>, Vec<K>>,
-    /// Current value.
-    value: Option<&'a V>,
-    /// Current keys.
-    keys: slice::Iter<'a, K>,
+/// Iterator over slab.
+pub struct Iter<'a, K, V> {
+    /// Inner iterator.
+    inner: slab::Iter<'a, (K, V)>,
 }
 
-/// Key iterator over ordering decorator.
-pub struct Keys<'a, K, V, C = Ascending> {
-    /// Ordering of values.
-    ordering: btree_map::Iter<'a, Comparable<V, C>, Vec<K>>,
-    /// Current keys.
-    keys: slice::Iter<'a, K>,
+/// Mutable iterator over slab.
+pub struct IterMut<'a, K, V> {
+    /// Inner iterator.
+    inner: slab::IterMut<'a, (K, V)>,
 }
 
-/// Value iterator over ordering decorator.
-pub struct Values<'a, K, V, C = Ascending> {
-    /// Ordering of values.
-    ordering: btree_map::Keys<'a, Comparable<V, C>, Vec<K>>,
+/// Key iterator over slab.
+pub struct Keys<'a, K, V> {
+    /// Inner iterator.
+    inner: slab::Iter<'a, (K, V)>,
+}
+
+/// Value iterator over slab.
+pub struct Values<'a, K, V> {
+    /// Inner iterator.
+    inner: slab::Iter<'a, (K, V)>,
 }
 
 // ----------------------------------------------------------------------------
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl<K, V, S, C> StoreIterable<K, V> for Ordered<K, V, S, C>
+impl<K, V> StoreIterable<K, V> for Slab<(K, V)>
 where
     K: Key,
-    S: Store<K, V>,
 {
-    type Iter<'a> = Iter<'a, K, V, C>
+    type Iter<'a> = Iter<'a, K, V>
     where
         Self: 'a;
 
@@ -79,34 +76,60 @@ where
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Ordered;
+    /// use slab::Slab;
     /// use zrx_store::{StoreIterable, StoreMut};
     ///
     /// // Create store and initial state
-    /// let mut store = Ordered::default();
-    /// store.insert("key", 42);
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
     ///
     /// // Create iterator over the store
-    /// for (key, value) in store.iter() {
+    /// for (key, value) in StoreIterable::iter(&store) {
     ///     println!("{key}: {value}");
     /// }
     /// ```
     #[inline]
     fn iter(&self) -> Self::Iter<'_> {
-        Iter {
-            ordering: self.ordering.iter(),
-            value: None,
-            keys: slice::Iter::default(),
-        }
+        Iter { inner: Slab::iter(self) }
     }
 }
 
-impl<K, V, S, C> StoreKeys<K, V> for Ordered<K, V, S, C>
+impl<K, V> StoreIterableMut<K, V> for Slab<(K, V)>
 where
     K: Key,
-    S: Store<K, V>,
 {
-    type Keys<'a> = Keys<'a, K, V, C>
+    type IterMut<'a> = IterMut<'a, K, V>
+    where
+        Self: 'a;
+
+    /// Creates a mutable iterator over the store.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use slab::Slab;
+    /// use zrx_store::{StoreIterableMut, StoreMut};
+    ///
+    /// // Create store and initial state
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
+    ///
+    /// // Create iterator over the store
+    /// for (key, value) in StoreIterableMut::iter_mut(&mut store) {
+    ///     println!("{key}: {value}");
+    /// }
+    /// ```
+    #[inline]
+    fn iter_mut(&mut self) -> Self::IterMut<'_> {
+        IterMut { inner: Slab::iter_mut(self) }
+    }
+}
+
+impl<K, V> StoreKeys<K, V> for Slab<(K, V)>
+where
+    K: Key,
+{
+    type Keys<'a> = Keys<'a, K, V>
     where
         Self: 'a;
 
@@ -115,98 +138,96 @@ where
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Ordered;
+    /// use slab::Slab;
     /// use zrx_store::{StoreKeys, StoreMut};
     ///
     /// // Create store and initial state
-    /// let mut store = Ordered::default();
-    /// store.insert("key", 42);
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
     ///
     /// // Create iterator over the store
-    /// for key in store.keys() {
+    /// for key in StoreKeys::keys(&store) {
     ///     println!("{key}");
     /// }
     /// ```
     #[inline]
     fn keys(&self) -> Self::Keys<'_> {
-        Keys {
-            ordering: self.ordering.iter(),
-            keys: slice::Iter::default(),
-        }
+        Keys { inner: Slab::iter(self) }
     }
 }
 
-impl<K, V, S, C> StoreValues<K, V> for Ordered<K, V, S, C>
+impl<K, V> StoreValues<K, V> for Slab<(K, V)>
 where
     K: Key,
-    S: Store<K, V>,
 {
-    type Values<'a> = Values<'a, K, V, C>
+    type Values<'a> = Values<'a, K, V>
     where
         Self: 'a;
 
-    /// Creates a value iterator over the store.
+    /// Creates a values iterator over the store.
     ///
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Ordered;
-    /// use zrx_store::{StoreMut, StoreValues};
+    /// use slab::Slab;
+    /// use zrx_store::{StoreValues, StoreMut};
     ///
     /// // Create store and initial state
-    /// let mut store = Ordered::default();
-    /// store.insert("key", 42);
+    /// let mut store = Slab::new();
+    /// StoreMut::insert(&mut store, "key", 42);
     ///
     /// // Create iterator over the store
-    /// for value in store.values() {
-    ///     println!("{value}");
+    /// for key in StoreValues::values(&store) {
+    ///     println!("{key}");
     /// }
     /// ```
     #[inline]
     fn values(&self) -> Self::Values<'_> {
-        Values { ordering: self.ordering.keys() }
+        Values { inner: Slab::iter(self) }
     }
 }
 
 // ----------------------------------------------------------------------------
 
-impl<'a, K, V, C> Iterator for Iter<'a, K, V, C>
+impl<'a, K, V> Iterator for Iter<'a, K, V>
 where
     K: Key,
-    V: 'a,
 {
     type Item = (&'a K, &'a V);
 
     /// Returns the next item.
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            // Check if we have keys left with the current value
-            if let Some(key) = self.keys.next() {
-                return self.value.map(|value| (key, value));
-            }
-
-            // Fetch the next value and associated keys
-            if let Some((value, keys)) = self.ordering.next() {
-                self.value = Some(value);
-                self.keys = keys.iter();
-            } else {
-                break;
-            }
-        }
-
-        // No more items to return
-        None
+        self.inner.next().map(|(_, (key, value))| (key, value))
     }
 
     /// Returns the bounds on the remaining length of the iterator.
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        self.ordering.size_hint()
+        self.inner.size_hint()
     }
 }
 
-impl<'a, K, V, C> Iterator for Keys<'a, K, V, C>
+impl<'a, K, V> Iterator for IterMut<'a, K, V>
+where
+    K: Key,
+{
+    type Item = (&'a K, &'a mut V);
+
+    /// Returns the next item.
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|(_, (key, value))| (&*key, value))
+    }
+
+    /// Returns the bounds on the remaining length of the iterator.
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
+    }
+}
+
+impl<'a, K, V> Iterator for Keys<'a, K, V>
 where
     K: Key,
 {
@@ -215,47 +236,31 @@ where
     /// Returns the next item.
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            // Check if we have keys left with the current value
-            if let Some(key) = self.keys.next() {
-                return Some(key);
-            }
-
-            // Fetch the next value and associated keys
-            if let Some((_, keys)) = self.ordering.next() {
-                self.keys = keys.iter();
-            } else {
-                break;
-            }
-        }
-
-        // No more items to return
-        None
+        self.inner.next().map(|(_, (key, _))| key)
     }
 
     /// Returns the bounds on the remaining length of the iterator.
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        self.ordering.size_hint()
+        self.inner.size_hint()
     }
 }
 
-impl<'a, K, V, C> Iterator for Values<'a, K, V, C>
+impl<'a, K, V> Iterator for Values<'a, K, V>
 where
     K: Key,
-    V: 'a,
 {
     type Item = &'a V;
 
     /// Returns the next item.
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.ordering.next().map(|value| &**value)
+        self.inner.next().map(|(_, (_, value))| value)
     }
 
     /// Returns the bounds on the remaining length of the iterator.
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        self.ordering.size_hint()
+        self.inner.size_hint()
     }
 }

@@ -369,6 +369,10 @@ where
     K: Key,
     S: StoreIterable<K, V>,
 {
+    type Iter<'a> = S::Iter<'a>
+    where
+        Self: 'a;
+
     /// Returns an iterator over the store.
     ///
     /// # Examples
@@ -387,11 +391,7 @@ where
     /// }
     /// ```
     #[inline]
-    fn iter<'a>(&'a self) -> impl Iterator<Item = (&'a K, &'a V)>
-    where
-        K: 'a,
-        V: 'a,
-    {
+    fn iter(&self) -> Self::Iter<'_> {
         self.store.iter()
     }
 }
@@ -401,6 +401,10 @@ where
     K: Key,
     S: StoreKeys<K, V>,
 {
+    type Keys<'a> = S::Keys<'a>
+    where
+        Self: 'a;
+
     /// Creates a key iterator over the store.
     ///
     /// # Examples
@@ -419,10 +423,7 @@ where
     /// }
     /// ```
     #[inline]
-    fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
-    where
-        K: 'a,
-    {
+    fn keys(&self) -> Self::Keys<'_> {
         self.store.keys()
     }
 }
@@ -432,6 +433,10 @@ where
     K: Key,
     S: StoreValues<K, V>,
 {
+    type Values<'a> = S::Values<'a>
+    where
+        Self: 'a;
+
     /// Creates a value iterator over the store.
     ///
     /// # Examples
@@ -450,10 +455,7 @@ where
     /// }
     /// ```
     #[inline]
-    fn values<'a>(&'a self) -> impl Iterator<Item = &'a V>
-    where
-        V: 'a,
-    {
+    fn values(&self) -> Self::Values<'_> {
         self.store.values()
     }
 }
