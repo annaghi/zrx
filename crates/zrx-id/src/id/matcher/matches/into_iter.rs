@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Iterator over match set.
+//! Consuming iterator over match set.
 
 use super::Matches;
 
@@ -31,7 +31,7 @@ use super::Matches;
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Iterator over match set.
+/// Consuming iterator over match set.
 pub struct IntoIter {
     /// Blocks of bits.
     data: Vec<u64>,
@@ -49,7 +49,7 @@ impl IntoIterator for Matches {
     type Item = usize;
     type IntoIter = IntoIter;
 
-    /// Creates an iterator over the match set.
+    /// Creates a consuming iterator over the match set.
     ///
     /// # Examples
     ///

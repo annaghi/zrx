@@ -25,9 +25,9 @@
 
 //! Match set.
 
-mod iter;
+mod into_iter;
 
-pub use iter::IntoIter;
+pub use into_iter::IntoIter;
 
 // ----------------------------------------------------------------------------
 // Structs
