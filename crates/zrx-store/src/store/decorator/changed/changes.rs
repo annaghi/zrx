@@ -60,7 +60,7 @@ where
     K: Key,
     S: Store<K, V>,
 {
-    /// Returns a change iterator over the store.
+    /// Creates a change iterator over the store.
     ///
     /// This method returns an iterator over all changed keys since the last
     /// call to this method. The iterator yields tuples of keys and optional
