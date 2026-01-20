@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Consuming iterator over indexing decorator.
+//! Store iterator implementations for [`Indexed`].
 
 use std::marker::PhantomData;
 use std::vec;
@@ -36,7 +36,7 @@ use super::Indexed;
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Consuming iterator over indexing decorator.
+/// Consuming iterator over [`Indexed`].
 #[derive(Debug)]
 pub struct IntoIter<K, V, S> {
     /// Underlying store.

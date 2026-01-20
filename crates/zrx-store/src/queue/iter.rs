@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Iterator over queue.
+//! Store iterator implementations for [`Queue`].
 
 use slab::Slab;
 use std::ptr;
@@ -41,7 +41,7 @@ use super::Queue;
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Iterator over queue.
+/// Iterator over [`Queue`].
 pub struct Iter<'a, K, V>
 where
     K: Key + 'a,
@@ -54,7 +54,7 @@ where
     deadline: Instant,
 }
 
-/// Mutable iterator over queue.
+/// Mutable iterator over [`Queue`].
 pub struct IterMut<'a, K, V>
 where
     K: Key + 'a,
@@ -67,7 +67,7 @@ where
     deadline: Instant,
 }
 
-/// Key iterator over queue.
+/// Key iterator over [`Queue`].
 pub struct Keys<'a, K>
 where
     K: Key + 'a,
@@ -78,7 +78,7 @@ where
     deadline: Instant,
 }
 
-/// Value iterator over queue.
+/// Value iterator over [`Queue`].
 pub struct Values<'a, K, V>
 where
     K: Key + 'a,

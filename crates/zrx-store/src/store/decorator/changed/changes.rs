@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Iterator over tracking decorator.
+//! Store iterator implementations for [`Changed`].
 
 use std::collections::hash_set;
 use std::marker::PhantomData;
@@ -37,7 +37,7 @@ use super::Changed;
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Iterator over changed items.
+/// Iterator over changed items of [`Changed`].
 pub struct Changes<'a, K, V, S>
 where
     K: Key,

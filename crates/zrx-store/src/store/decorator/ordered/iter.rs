@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Iterator over ordering decorator.
+//! Store iterator implementations for [`Ordered`].
 
 use std::collections::btree_map;
 use std::slice;
@@ -37,7 +37,7 @@ use super::Ordered;
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Iterator over ordering decorator.
+/// Iterator over [`Ordered`].
 pub struct Iter<'a, K, V, C = Ascending> {
     /// Ordering of values.
     ordering: btree_map::Iter<'a, Comparable<V, C>, Vec<K>>,
@@ -47,7 +47,7 @@ pub struct Iter<'a, K, V, C = Ascending> {
     keys: slice::Iter<'a, K>,
 }
 
-/// Key iterator over ordering decorator.
+/// Key iterator over [`Ordered`].
 pub struct Keys<'a, K, V, C = Ascending> {
     /// Ordering of values.
     ordering: btree_map::Iter<'a, Comparable<V, C>, Vec<K>>,
@@ -55,7 +55,7 @@ pub struct Keys<'a, K, V, C = Ascending> {
     keys: slice::Iter<'a, K>,
 }
 
-/// Value iterator over ordering decorator.
+/// Value iterator over [`Ordered`].
 pub struct Values<'a, K, V, C = Ascending> {
     /// Ordering of values.
     ordering: btree_map::Keys<'a, Comparable<V, C>, Vec<K>>,

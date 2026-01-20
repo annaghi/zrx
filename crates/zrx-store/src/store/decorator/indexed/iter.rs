@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Iterator over indexing decorator.
+//! Store iterator implementations for [`Indexed`].
 
 use std::marker::PhantomData;
 use std::ops::{Bound, RangeBounds};
@@ -37,7 +37,7 @@ use super::Indexed;
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Iterator over indexing decorator.
+/// Iterator over [`Indexed`].
 pub struct Iter<'a, K, V, S> {
     /// Underlying store.
     store: &'a S,
@@ -47,7 +47,7 @@ pub struct Iter<'a, K, V, S> {
     marker: PhantomData<V>,
 }
 
-/// Value iterator over indexing decorator.
+/// Value iterator over [`Indexed`].
 pub struct Values<'a, K, V, S> {
     /// Underlying store.
     store: &'a S,
@@ -284,5 +284,5 @@ where
 // Type aliases
 // ----------------------------------------------------------------------------
 
-/// Key iterator over indexing decorator.
+/// Key iterator over [`Indexed`].
 pub type Keys<'a, K> = slice::Iter<'a, K>;

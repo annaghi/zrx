@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Store iterator implementations over [`Slab`].
+//! Store iterator implementations for [`Slab`].
 
 use slab::Slab;
 
@@ -35,25 +35,25 @@ use crate::store::{
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Iterator over slab.
+/// Iterator over [`Slab`].
 pub struct Iter<'a, K, V> {
     /// Inner iterator.
     inner: slab::Iter<'a, (K, V)>,
 }
 
-/// Mutable iterator over slab.
+/// Mutable iterator over [`Slab`].
 pub struct IterMut<'a, K, V> {
     /// Inner iterator.
     inner: slab::IterMut<'a, (K, V)>,
 }
 
-/// Key iterator over slab.
+/// Key iterator over [`Slab`].
 pub struct Keys<'a, K, V> {
     /// Inner iterator.
     inner: slab::Iter<'a, (K, V)>,
 }
 
-/// Value iterator over slab.
+/// Value iterator over [`Slab`].
 pub struct Values<'a, K, V> {
     /// Inner iterator.
     inner: slab::Iter<'a, (K, V)>,
