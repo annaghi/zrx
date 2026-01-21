@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Store iterator implementations for [`Ordered`].
+//! Consuming iterator implementation for [`Ordered`].
 
 use std::collections::btree_map;
 use std::vec;
@@ -38,7 +38,7 @@ use super::Ordered;
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Consuming iterator over [`Ordered`].
+/// Consuming iterator over an [`Ordered`] store.
 #[derive(Debug)]
 pub struct IntoIter<K, V, C = Ascending> {
     /// Ordering of values.

@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Store iterator implementations for collections.
+//! Iterator implementations for collections.
 
 use std::collections::btree_map::{self, BTreeMap};
 use std::collections::hash_map::{self, HashMap};

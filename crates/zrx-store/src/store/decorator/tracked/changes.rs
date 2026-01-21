@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Store iterator implementations for [`Tracked`].
+//! Iterator implementations for [`Tracked`].
 
 use ahash::HashMap;
 use std::collections::hash_set;

@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Store iterator implementations for [`Indexed`].
+//! Consuming iterator implementation for [`Indexed`].
 
 use ahash::HashMap;
 use std::marker::PhantomData;
@@ -38,7 +38,7 @@ use super::Indexed;
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Consuming iterator over [`Indexed`].
+/// Consuming iterator over an [`Indexed`] store.
 #[derive(Debug)]
 pub struct IntoIter<K, V, S = HashMap<K, V>> {
     /// Underlying store.

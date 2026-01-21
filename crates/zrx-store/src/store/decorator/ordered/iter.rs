@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Store iterator implementations for [`Ordered`].
+//! Iterator implementations for [`Ordered`].
 
 use std::collections::btree_map;
 use std::slice;

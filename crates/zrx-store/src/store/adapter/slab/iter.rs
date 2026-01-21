@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Store iterator implementations for [`Slab`].
+//! Iterator implementations for [`Slab`].
 
 use slab::Slab;
 

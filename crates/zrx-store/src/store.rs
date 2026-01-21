@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Store abstractions.
+//! Store traits.
 
 use std::borrow::Borrow;
 use std::ops::RangeBounds;

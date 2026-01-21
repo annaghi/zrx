@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Store iterator implementations for [`Queue`].
+//! Iterator implementations for [`Queue`].
 
 use slab::Slab;
 use std::ptr;

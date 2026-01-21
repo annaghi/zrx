@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Store iterator implementations for [`Indexed`].
+//! Iterator implementations for [`Indexed`].
 
 use ahash::HashMap;
 use std::marker::PhantomData;
