@@ -26,7 +26,7 @@ use ahash::{HashMap, HashSet};
 use std::borrow::Borrow;
 use std::fmt;
 use std::marker::PhantomData;
-use std::ops::RangeBounds;
+use std::ops::{Index, RangeBounds};
 
 use crate::store::key::Key;
 use crate::store::{
@@ -466,6 +466,42 @@ where
         R: RangeBounds<K>,
     {
         self.store.range(range)
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+impl<K, V, S> Index<usize> for Tracked<K, V, S>
+where
+    K: Key,
+    S: Store<K, V> + Index<usize, Output = K>,
+{
+    type Output = K;
+
+    /// Returns a reference to the key at the index.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the index is out of bounds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_store::decorator::{Indexed, Tracked};
+    /// use zrx_store::StoreMut;
+    ///
+    /// // Create store and initial state
+    /// let mut store = Tracked::<_, _, Indexed<_, _>>::new();
+    /// store.insert("a", 42);
+    /// store.insert("b", 84);
+    ///
+    /// // Obtain reference to key
+    /// let key = &store[1];
+    /// assert_eq!(key, &"b");
+    /// ```
+    #[inline]
+    fn index(&self, n: usize) -> &Self::Output {
+        &self.store[n]
     }
 }
 
