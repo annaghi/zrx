@@ -68,6 +68,7 @@ where
     T: Ord,
 {
     /// Compares two values in ascending order.
+    #[inline]
     fn cmp(&self, a: &T, b: &T) -> Ordering {
         a.cmp(b)
     }
@@ -78,6 +79,7 @@ where
     T: Ord,
 {
     /// Compares two values in descending order.
+    #[inline]
     fn cmp(&self, a: &T, b: &T) -> Ordering {
         b.cmp(a)
     }
