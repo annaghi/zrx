@@ -28,14 +28,11 @@
 use std::borrow::Borrow;
 use std::collections::{BTreeMap, HashMap};
 use std::hash::BuildHasher;
-use std::ops::RangeBounds;
 
-use crate::store::{
-    Key, Store, StoreIterable, StoreIterableMut, StoreKeys, StoreMut,
-    StoreMutRef, StoreRange, StoreValues,
-};
+use crate::store::key::Key;
+use crate::store::{Store, StoreMut, StoreMutRef};
 
-use super::update_if_changed;
+mod iter;
 
 // ----------------------------------------------------------------------------
 // Trait implementations
@@ -288,132 +285,6 @@ where
     }
 }
 
-impl<K, V, S> StoreIterable<K, V> for HashMap<K, V, S>
-where
-    K: Key,
-    S: BuildHasher,
-{
-    /// Creates an iterator over the store.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::HashMap;
-    /// use zrx_store::StoreMut;
-    ///
-    /// // Create store and initial state
-    /// let mut store = HashMap::new();
-    /// store.insert("key", 42);
-    ///
-    /// // Create iterator over the store
-    /// for (key, value) in store {
-    ///     println!("{key}: {value}");
-    /// }
-    /// ```
-    #[inline]
-    fn iter<'a>(&'a self) -> impl Iterator<Item = (&'a K, &'a V)>
-    where
-        K: 'a,
-        V: 'a,
-    {
-        HashMap::iter(self)
-    }
-}
-
-impl<K, V, S> StoreIterableMut<K, V> for HashMap<K, V, S>
-where
-    K: Key,
-    S: BuildHasher,
-{
-    /// Creates a mutable iterator over the store.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::HashMap;
-    /// use zrx_store::{StoreIterableMut, StoreMut};
-    ///
-    /// // Create store and initial state
-    /// let mut store = HashMap::new();
-    /// store.insert("key", 42);
-    ///
-    /// // Create iterator over the store
-    /// for (key, value) in store.iter_mut() {
-    ///     println!("{key}: {value}");
-    /// }
-    /// ```
-    #[inline]
-    fn iter_mut<'a>(&'a mut self) -> impl Iterator<Item = (&'a K, &'a mut V)>
-    where
-        K: 'a,
-        V: 'a,
-    {
-        HashMap::iter_mut(self)
-    }
-}
-
-impl<K, V, S> StoreKeys<K, V> for HashMap<K, V, S>
-where
-    K: Key,
-    S: BuildHasher,
-{
-    /// Creates a key iterator over the store.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::HashMap;
-    /// use zrx_store::{StoreKeys, StoreMut};
-    ///
-    /// // Create store and initial state
-    /// let mut store = HashMap::new();
-    /// store.insert("key", 42);
-    ///
-    /// // Create iterator over the store
-    /// for key in store.keys() {
-    ///     println!("{key}");
-    /// }
-    /// ```
-    #[inline]
-    fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
-    where
-        K: 'a,
-    {
-        HashMap::keys(self)
-    }
-}
-
-impl<K, V, S> StoreValues<K, V> for HashMap<K, V, S>
-where
-    K: Key,
-    S: BuildHasher,
-{
-    /// Creates a value iterator over the store.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::HashMap;
-    /// use zrx_store::{StoreMut, StoreValues};
-    ///
-    /// // Create store and initial state
-    /// let mut store = HashMap::new();
-    /// store.insert("key", 42);
-    ///
-    /// // Create iterator over the store
-    /// for value in store.values() {
-    ///     println!("{value}");
-    /// }
-    /// ```
-    #[inline]
-    fn values<'a>(&'a self) -> impl Iterator<Item = &'a V>
-    where
-        V: 'a,
-    {
-        HashMap::values(self)
-    }
-}
-
 // ----------------------------------------------------------------------------
 
 impl<K, V> Store<K, V> for BTreeMap<K, V>
@@ -660,157 +531,20 @@ where
     }
 }
 
-impl<K, V> StoreIterable<K, V> for BTreeMap<K, V>
-where
-    K: Key,
-{
-    /// Creates an iterator over the store.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::BTreeMap;
-    /// use zrx_store::{StoreIterable, StoreMut};
-    ///
-    /// // Create store and initial state
-    /// let mut store = BTreeMap::new();
-    /// store.insert("key", 42);
-    ///
-    /// // Create iterator over the store
-    /// for (key, value) in store.iter() {
-    ///     println!("{key}: {value}");
-    /// }
-    /// ```
-    #[inline]
-    fn iter<'a>(&'a self) -> impl Iterator<Item = (&'a K, &'a V)>
-    where
-        K: 'a,
-        V: 'a,
-    {
-        BTreeMap::iter(self)
-    }
-}
+// ----------------------------------------------------------------------------
+// Functions
+// ----------------------------------------------------------------------------
 
-impl<K, V> StoreIterableMut<K, V> for BTreeMap<K, V>
+/// Updates the prior value if it has changed.
+#[inline]
+fn update_if_changed<V>(prior: &mut V, value: &V) -> bool
 where
-    K: Key,
+    V: Clone + Eq,
 {
-    /// Creates a mutable iterator over the store.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::BTreeMap;
-    /// use zrx_store::{StoreIterableMut, StoreMut};
-    ///
-    /// // Create store and initial state
-    /// let mut store = BTreeMap::new();
-    /// store.insert("key", 42);
-    ///
-    /// // Create iterator over the store
-    /// for (key, value) in store.iter_mut() {
-    ///     println!("{key}: {value}");
-    /// }
-    /// ```
-    #[inline]
-    fn iter_mut<'a>(&'a mut self) -> impl Iterator<Item = (&'a K, &'a mut V)>
-    where
-        K: 'a,
-        V: 'a,
-    {
-        BTreeMap::iter_mut(self)
-    }
-}
-
-impl<K, V> StoreKeys<K, V> for BTreeMap<K, V>
-where
-    K: Key,
-{
-    /// Creates a key iterator over the store.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::BTreeMap;
-    /// use zrx_store::{StoreKeys, StoreMut};
-    ///
-    /// // Create store and initial state
-    /// let mut store = BTreeMap::new();
-    /// store.insert("key", 42);
-    ///
-    /// // Create iterator over the store
-    /// for key in store.keys() {
-    ///     println!("{key}");
-    /// }
-    /// ```
-    #[inline]
-    fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
-    where
-        K: 'a,
-    {
-        BTreeMap::keys(self)
-    }
-}
-
-impl<K, V> StoreValues<K, V> for BTreeMap<K, V>
-where
-    K: Key,
-{
-    /// Creates a value iterator over the store.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::BTreeMap;
-    /// use zrx_store::{StoreMut, StoreValues};
-    ///
-    /// // Create store and initial state
-    /// let mut store = BTreeMap::new();
-    /// store.insert("key", 42);
-    ///
-    /// // Create iterator over the store
-    /// for value in store.values() {
-    ///     println!("{value}");
-    /// }
-    /// ```
-    #[inline]
-    fn values<'a>(&'a self) -> impl Iterator<Item = &'a V>
-    where
-        V: 'a,
-    {
-        BTreeMap::values(self)
-    }
-}
-
-impl<K, V> StoreRange<K, V> for BTreeMap<K, V>
-where
-    K: Key,
-{
-    /// Creates a range iterator over the store.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::BTreeMap;
-    /// use zrx_store::{StoreMut, StoreRange};
-    ///
-    /// // Create store and initial state
-    /// let mut store = BTreeMap::new();
-    /// store.insert("a", 42);
-    /// store.insert("b", 84);
-    ///
-    /// // Create iterator over the store
-    /// for (key, value) in store.range("b"..) {
-    ///     println!("{key}: {value}");
-    /// }
-    /// ```
-    #[inline]
-    fn range<'a, R>(&'a self, range: R) -> impl Iterator<Item = (&'a K, &'a V)>
-    where
-        R: RangeBounds<K>,
-        K: 'a,
-        V: 'a,
-    {
-        BTreeMap::range(self, range)
+    if prior == value {
+        false
+    } else {
+        *prior = value.clone();
+        true
     }
 }

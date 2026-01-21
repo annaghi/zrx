@@ -29,17 +29,17 @@ use ahash::HashMap;
 use slab::Slab;
 use std::borrow::Borrow;
 use std::time::Instant;
-use std::{fmt, mem, ptr};
+use std::{fmt, mem};
 
 use crate::store::decorator::Ordered;
-use crate::store::{
-    Key, Store, StoreIterable, StoreIterableMut, StoreKeys, StoreMut,
-    StoreMutRef, StoreValues,
-};
+use crate::store::key::Key;
+use crate::store::{Store, StoreIterable, StoreMut, StoreMutRef};
 
 mod item;
+mod iter;
 
 pub use item::Item;
+pub use iter::{Iter, Keys, Values};
 
 // ----------------------------------------------------------------------------
 // Structs
@@ -495,162 +495,6 @@ where
 
         // We can safely use expect here, as the key is present
         self.get_mut(key).expect("invariant")
-    }
-}
-
-impl<K, V, S> StoreIterable<K, V> for Queue<K, V, S>
-where
-    K: Key,
-    S: StoreIterable<K, Item>,
-{
-    /// Creates an iterator over the queue.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_store::queue::Queue;
-    /// use zrx_store::{StoreIterable, StoreMut};
-    ///
-    /// // Create queue and initial state
-    /// let mut queue = Queue::default();
-    /// queue.insert("key", 42);
-    ///
-    /// // Create iterator over the queue
-    /// for (key, value) in queue.iter() {
-    ///     println!("{key}: {value}");
-    /// }
-    /// ```
-    #[inline]
-    fn iter<'a>(&'a self) -> impl Iterator<Item = (&'a K, &'a V)>
-    where
-        K: 'a,
-        V: 'a,
-    {
-        // Obtain the current instant once to select due items during iteration,
-        // or tight loops might experience slowdowns of up to a factor of 6
-        let deadline = Instant::now();
-        let iter = self.store.iter();
-        iter.take_while(move |(_, item)| item.deadline() <= deadline)
-            .map(|(key, item)| (key, &self.items[*item.data()]))
-    }
-}
-
-impl<K, V, S> StoreIterableMut<K, V> for Queue<K, V, S>
-where
-    K: Key,
-    S: StoreMut<K, Item> + StoreIterable<K, Item>,
-{
-    /// Creates a mutable iterator over the queue.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_store::queue::Queue;
-    /// use zrx_store::{StoreIterableMut, StoreMut};
-    ///
-    /// // Create queue and initial state
-    /// let mut queue = Queue::default();
-    /// queue.insert("key", 42);
-    ///
-    /// // Create iterator over the queue
-    /// for (key, value) in queue.iter_mut() {
-    ///     println!("{key}: {value}");
-    /// }
-    /// ```
-    #[inline]
-    fn iter_mut<'a>(&'a mut self) -> impl Iterator<Item = (&'a K, &'a mut V)>
-    where
-        K: 'a,
-        V: 'a,
-    {
-        // Obtain a mutable pointer to the queue items, as we need to reference
-        // it in the closure passed to the iterator's map method
-        let items = ptr::addr_of_mut!(self.items);
-
-        // Obtain the current instant once to select due items during iteration,
-        // or tight loops might experience slowdowns of up to a factor of 6
-        let deadline = Instant::now();
-        let iter = self.store.iter();
-        iter.take_while(move |(_, item)| item.deadline() <= deadline)
-            .map(move |(key, item)| {
-                // SAFETY: The borrow checker won't let us return a mutable
-                // reference to an item in the slab, but we know this is safe,
-                // as the store and the slab are two distinct data structures
-                // that are synchronized with each other
-                (key, unsafe { &mut (&mut *items)[*item.data()] })
-            })
-    }
-}
-
-impl<K, V, S> StoreKeys<K, V> for Queue<K, V, S>
-where
-    K: Key,
-    S: StoreIterable<K, Item>,
-{
-    /// Creates a key iterator over the queue.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_store::queue::Queue;
-    /// use zrx_store::{StoreKeys, StoreMut};
-    ///
-    /// // Create queue and initial state
-    /// let mut queue = Queue::default();
-    /// queue.insert("key", 42);
-    ///
-    /// // Create iterator over the queue
-    /// for key in queue.keys() {
-    ///     println!("{key}");
-    /// }
-    /// ```
-    #[inline]
-    fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
-    where
-        K: 'a,
-    {
-        // Obtain the current instant once to select due items during iteration,
-        // or tight loops might experience slowdowns of up to a factor of 6
-        let deadline = Instant::now();
-        let iter = self.store.iter();
-        iter.take_while(move |(_, item)| item.deadline() <= deadline)
-            .map(|(key, _)| key)
-    }
-}
-
-impl<K, V, S> StoreValues<K, V> for Queue<K, V, S>
-where
-    K: Key,
-    S: StoreIterable<K, Item>,
-{
-    /// Creates a value iterator over the queue.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_store::queue::Queue;
-    /// use zrx_store::{StoreMut, StoreValues};
-    ///
-    /// // Create queue and initial state
-    /// let mut queue = Queue::default();
-    /// queue.insert("key", 42);
-    ///
-    /// // Create iterator over the queue
-    /// for value in queue.values() {
-    ///     println!("{value}");
-    /// }
-    /// ```
-    #[inline]
-    fn values<'a>(&'a self) -> impl Iterator<Item = &'a V>
-    where
-        V: 'a,
-    {
-        // Obtain the current instant once to select due items during iteration,
-        // or tight loops might experience slowdowns of up to a factor of 6
-        let deadline = Instant::now();
-        let iter = self.store.iter();
-        iter.take_while(move |(_, item)| item.deadline() <= deadline)
-            .map(|(_, item)| &self.items[*item.data()])
     }
 }
 

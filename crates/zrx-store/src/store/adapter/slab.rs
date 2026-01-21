@@ -23,15 +23,17 @@
 
 // ----------------------------------------------------------------------------
 
-//! Store implementations for `slab`.
+//! Store implementations for [`Slab`].
 
 use slab::Slab;
 use std::borrow::Borrow;
 
-use crate::store::{
-    Key, Store, StoreIterable, StoreIterableMut, StoreKeys, StoreMut,
-    StoreMutRef, StoreValues,
-};
+use crate::store::key::Key;
+use crate::store::{Store, StoreMut, StoreMutRef};
+
+mod iter;
+
+pub use iter::{Iter, IterMut, Keys, Values};
 
 // ----------------------------------------------------------------------------
 // Trait implementations
@@ -261,127 +263,5 @@ where
 
         // Return mutable reference
         &mut self[index].1
-    }
-}
-
-impl<K, V> StoreIterable<K, V> for Slab<(K, V)>
-where
-    K: Key,
-{
-    /// Creates an iterator over the store.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use slab::Slab;
-    /// use zrx_store::{StoreIterable, StoreMut};
-    ///
-    /// // Create store and initial state
-    /// let mut store = Slab::new();
-    /// StoreMut::insert(&mut store, "key", 42);
-    ///
-    /// // Create iterator over the store
-    /// for (key, value) in StoreIterable::iter(&store) {
-    ///     println!("{key}: {value}");
-    /// }
-    /// ```
-    #[inline]
-    fn iter<'a>(&'a self) -> impl Iterator<Item = (&'a K, &'a V)>
-    where
-        K: 'a,
-        V: 'a,
-    {
-        Slab::iter(self).map(|(_, (key, value))| (key, value))
-    }
-}
-
-impl<K, V> StoreIterableMut<K, V> for Slab<(K, V)>
-where
-    K: Key,
-{
-    /// Creates a mutable iterator over the store.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use slab::Slab;
-    /// use zrx_store::{StoreIterableMut, StoreMut};
-    ///
-    /// // Create store and initial state
-    /// let mut store = Slab::new();
-    /// StoreMut::insert(&mut store, "key", 42);
-    ///
-    /// // Create iterator over the store
-    /// for (key, value) in StoreIterableMut::iter_mut(&mut store) {
-    ///     println!("{key}: {value}");
-    /// }
-    /// ```
-    #[inline]
-    fn iter_mut<'a>(&'a mut self) -> impl Iterator<Item = (&'a K, &'a mut V)>
-    where
-        K: 'a,
-        V: 'a,
-    {
-        Slab::iter_mut(self).map(|(_, (key, value))| (&*key, value))
-    }
-}
-
-impl<K, V> StoreKeys<K, V> for Slab<(K, V)>
-where
-    K: Key,
-{
-    /// Creates a key iterator over the store.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use slab::Slab;
-    /// use zrx_store::{StoreKeys, StoreMut};
-    ///
-    /// // Create store and initial state
-    /// let mut store = Slab::new();
-    /// StoreMut::insert(&mut store, "key", 42);
-    ///
-    /// // Create iterator over the store
-    /// for key in StoreKeys::keys(&store) {
-    ///     println!("{key}");
-    /// }
-    /// ```
-    #[inline]
-    fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
-    where
-        K: 'a,
-    {
-        Slab::iter(self).map(|(_, (key, _))| key)
-    }
-}
-
-impl<K, V> StoreValues<K, V> for Slab<(K, V)>
-where
-    K: Key,
-{
-    /// Creates a key iterator over the store.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use slab::Slab;
-    /// use zrx_store::{StoreValues, StoreMut};
-    ///
-    /// // Create store and initial state
-    /// let mut store = Slab::new();
-    /// StoreMut::insert(&mut store, "key", 42);
-    ///
-    /// // Create iterator over the store
-    /// for key in StoreValues::values(&store) {
-    ///     println!("{key}");
-    /// }
-    /// ```
-    #[inline]
-    fn values<'a>(&'a self) -> impl Iterator<Item = &'a V>
-    where
-        V: 'a,
-    {
-        Slab::iter(self).map(|(_, (_, value))| value)
     }
 }

@@ -23,84 +23,106 @@
 
 // ----------------------------------------------------------------------------
 
-//! Iterator over match set.
+//! Consuming iterator implementation for [`Indexed`].
 
-use super::Matches;
+use ahash::HashMap;
+use std::marker::PhantomData;
+use std::vec;
+
+use crate::store::key::Key;
+use crate::store::StoreMut;
+
+use super::Indexed;
 
 // ----------------------------------------------------------------------------
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Iterator over match set.
-pub struct IntoIter {
-    /// Blocks of bits.
-    data: Vec<u64>,
-    /// Current block index.
-    index: usize,
-    /// Current block.
-    block: u64,
+/// Consuming iterator over an [`Indexed`] store.
+#[derive(Debug)]
+pub struct IntoIter<K, V, S = HashMap<K, V>> {
+    /// Underlying store.
+    store: S,
+    /// Ordering of values.
+    ordering: vec::IntoIter<K>,
+    /// Capture types.
+    marker: PhantomData<V>,
 }
 
 // ----------------------------------------------------------------------------
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl IntoIterator for Matches {
-    type Item = usize;
-    type IntoIter = IntoIter;
+impl<K, V, S, C> IntoIterator for Indexed<K, V, S, C>
+where
+    K: Key,
+    S: StoreMut<K, V>,
+{
+    type Item = (K, V);
+    type IntoIter = IntoIter<K, V, S>;
 
-    /// Creates an iterator over the match set.
+    /// Creates a consuming iterator over the store.
     ///
     /// # Examples
     ///
     /// ```
-    /// use zrx_id::Matches;
+    /// use zrx_store::decorator::Indexed;
+    /// use zrx_store::StoreMut;
     ///
-    /// // Create match set from iterator
-    /// let mut matches = Matches::from_iter([0, 1]);
+    /// // Create store and initial state
+    /// let mut store = Indexed::default();
+    /// store.insert("key", 42);
     ///
-    /// // Create iterator over match set
-    /// for index in matches {
-    ///     println!("{index:?}");
+    /// // Create iterator over the store
+    /// for (key, value) in store {
+    ///     println!("{key}: {value}");
     /// }
     /// ```
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
-        let block = self.data[0];
         IntoIter {
-            data: self.data,
-            index: 0,
-            block,
+            store: self.store,
+            ordering: self.ordering.into_iter(),
+            marker: PhantomData,
         }
     }
 }
 
 // ----------------------------------------------------------------------------
 
-impl Iterator for IntoIter {
-    type Item = usize;
+impl<K, V, S> Iterator for IntoIter<K, V, S>
+where
+    K: Key,
+    S: StoreMut<K, V>,
+{
+    type Item = (K, V);
 
-    /// Returns the next match.
+    /// Returns the next item.
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            if self.block != 0 {
-                let num = self.block.trailing_zeros() as usize;
-
-                // Clear the lowest bit and return it
-                self.block &= self.block - 1;
-                return Some(self.index << 6 | num);
-            }
-
-            // Move to the next block
-            self.index += 1;
-
-            // If all blocks are exhausted, we're done
-            if self.index >= self.data.len() {
-                return None;
-            }
-
-            // Update the current block to the next block
-            self.block = self.data[self.index];
+        if let Some(key) = self.ordering.next() {
+            return self.store.remove(&key).map(|value| (key, value));
         }
+
+        // No more items to return
+        None
+    }
+
+    /// Returns the bounds on the remaining length of the iterator.
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.ordering.size_hint()
+    }
+}
+
+impl<K, V, S> ExactSizeIterator for IntoIter<K, V, S>
+where
+    K: Key,
+    S: StoreMut<K, V>,
+{
+    /// Returns the exact remaining length of the iterator.
+    #[inline]
+    fn len(&self) -> usize {
+        self.ordering.len()
     }
 }

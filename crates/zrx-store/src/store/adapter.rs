@@ -23,27 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Store implementations for collections.
+//! Store adapters for various implementations.
 
-mod core;
-#[cfg(feature = "litemap")]
-mod litemap;
-mod slab;
-
-// ----------------------------------------------------------------------------
-// Functions
-// ----------------------------------------------------------------------------
-
-/// Updates the prior value if it has changed.
-#[inline]
-fn update_if_changed<V>(prior: &mut V, value: &V) -> bool
-where
-    V: Clone + Eq,
-{
-    if prior == value {
-        false
-    } else {
-        *prior = value.clone();
-        true
-    }
-}
+mod collections;
+pub mod slab;

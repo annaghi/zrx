@@ -24,14 +24,19 @@
 
 use ahash::{HashMap, HashSet};
 use std::borrow::Borrow;
+use std::fmt;
 use std::marker::PhantomData;
-use std::ops::RangeBounds;
-use std::{fmt, mem};
+use std::ops::{Index, RangeBounds};
 
+use crate::store::key::Key;
 use crate::store::{
-    Key, Store, StoreFromIterator, StoreIntoIterator, StoreIterable, StoreKeys,
+    Store, StoreFromIterator, StoreIntoIterator, StoreIterable, StoreKeys,
     StoreMut, StoreRange, StoreValues,
 };
+
+mod changes;
+
+pub use changes::Changes;
 
 // ----------------------------------------------------------------------------
 // Structs
@@ -49,20 +54,20 @@ use crate::store::{
 /// recorded chronologically, but always returned in random order, because of
 /// the use of [`HashSet`] as a data structure for change management.
 ///
-/// Note that it's a good idea to use [`Changed::default`][], since it leverages
+/// Note that it's a good idea to use [`Tracked::default`][], since it leverages
 /// [`ahash`] as a [`BuildHasher`][], which is the fastest known hasher.
 ///
 /// [`BuildHasher`]: std::hash::BuildHasher
-/// [`Changed::default`]: Default::default
+/// [`Tracked::default`]: Default::default
 ///
 /// # Examples
 ///
 /// ```
-/// use zrx_store::decorator::Changed;
+/// use zrx_store::decorator::Tracked;
 /// use zrx_store::StoreMut;
 ///
 /// // Create store and initial state
-/// let mut store = Changed::default();
+/// let mut store = Tracked::default();
 /// store.insert("a", 4);
 /// store.insert("b", 2);
 /// store.insert("c", 3);
@@ -73,7 +78,7 @@ use crate::store::{
 ///     println!("{key}: {value}");
 /// }
 /// ```
-pub struct Changed<K, V, S = HashMap<K, V>>
+pub struct Tracked<K, V, S = HashMap<K, V>>
 where
     K: Key,
     S: Store<K, V>,
@@ -81,7 +86,7 @@ where
     /// Underlying store.
     store: S,
     /// Keys of changed items.
-    changes: HashSet<K>,
+    changed: HashSet<K>,
     /// Capture types.
     marker: PhantomData<V>,
 }
@@ -90,7 +95,7 @@ where
 // Implementations
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> Changed<K, V, S>
+impl<K, V, S> Tracked<K, V, S>
 where
     K: Key,
     S: Store<K, V>,
@@ -101,11 +106,11 @@ where
     ///
     /// ```
     /// use std::collections::HashMap;
-    /// use zrx_store::decorator::Changed;
+    /// use zrx_store::decorator::Tracked;
     /// use zrx_store::StoreMut;
     ///
     /// // Create store and initial state
-    /// let mut store = Changed::<_, _, HashMap<_, _>>::new();
+    /// let mut store = Tracked::<_, _, HashMap<_, _>>::new();
     /// store.insert("key", 42);
     /// ```
     #[must_use]
@@ -115,42 +120,9 @@ where
     {
         Self {
             store: S::default(),
-            changes: HashSet::default(),
+            changed: HashSet::default(),
             marker: PhantomData,
         }
-    }
-
-    /// Returns a change iterator over the store.
-    ///
-    /// This method returns an iterator over all changed keys since the last
-    /// call to this method. The iterator yields tuples of keys and optional
-    /// references to the corresponding values in the store, so if a key was
-    /// removed from the store, the value will be [`None`].
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use zrx_store::decorator::Changed;
-    /// use zrx_store::StoreMut;
-    ///
-    /// // Create store and initial state
-    /// let mut store = Changed::default();
-    /// store.insert("a", 4);
-    /// store.insert("b", 2);
-    /// store.insert("c", 3);
-    /// store.insert("d", 1);
-    ///
-    /// // Obtain changes from store
-    /// for (key, opt) in store.changes() {
-    ///     println!("{key}: {opt:?}");
-    /// }
-    /// ```
-    pub fn changes(&mut self) -> impl Iterator<Item = (K, Option<&V>)> {
-        let iter = mem::take(&mut self.changes).into_iter();
-        iter.map(|key| {
-            let opt = self.store.get(&key);
-            (key, opt)
-        })
     }
 }
 
@@ -158,7 +130,7 @@ where
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> Store<K, V> for Changed<K, V, S>
+impl<K, V, S> Store<K, V> for Tracked<K, V, S>
 where
     K: Key,
     S: Store<K, V>,
@@ -168,11 +140,11 @@ where
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Changed;
+    /// use zrx_store::decorator::Tracked;
     /// use zrx_store::{Store, StoreMut};
     ///
     /// // Create store and initial state
-    /// let mut store = Changed::default();
+    /// let mut store = Tracked::default();
     /// store.insert("key", 42);
     ///
     /// // Obtain reference to value
@@ -193,11 +165,11 @@ where
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Changed;
+    /// use zrx_store::decorator::Tracked;
     /// use zrx_store::{Store, StoreMut};
     ///
     /// // Create store and initial state
-    /// let mut store = Changed::default();
+    /// let mut store = Tracked::default();
     /// store.insert("key", 42);
     ///
     /// // Ensure presence of key
@@ -220,7 +192,7 @@ where
     }
 }
 
-impl<K, V, S> StoreMut<K, V> for Changed<K, V, S>
+impl<K, V, S> StoreMut<K, V> for Tracked<K, V, S>
 where
     K: Key,
     S: StoreMut<K, V>,
@@ -230,16 +202,16 @@ where
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Changed;
+    /// use zrx_store::decorator::Tracked;
     /// use zrx_store::StoreMut;
     ///
     /// // Create store and insert value
-    /// let mut store = Changed::default();
+    /// let mut store = Tracked::default();
     /// store.insert("key", 42);
     /// ```
     #[inline]
     fn insert(&mut self, key: K, value: V) -> Option<V> {
-        self.changes.insert(key.clone());
+        self.changed.insert(key.clone());
         self.store.insert(key, value)
     }
 
@@ -248,11 +220,11 @@ where
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Changed;
+    /// use zrx_store::decorator::Tracked;
     /// use zrx_store::StoreMut;
     ///
     /// // Create store
-    /// let mut store = Changed::default();
+    /// let mut store = Tracked::default();
     ///
     /// // Insert value
     /// let check = store.insert_if_changed(&"key", &42);
@@ -272,7 +244,7 @@ where
         V: Clone + Eq,
     {
         if self.store.insert_if_changed(key, value) {
-            self.changes.insert(key.clone());
+            self.changed.insert(key.clone());
             true
         } else {
             false
@@ -284,11 +256,11 @@ where
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Changed;
+    /// use zrx_store::decorator::Tracked;
     /// use zrx_store::StoreMut;
     ///
     /// // Create store and initial state
-    /// let mut store = Changed::default();
+    /// let mut store = Tracked::default();
     /// store.insert("key", 42);
     ///
     /// // Remove and return value
@@ -302,7 +274,7 @@ where
         Q: Key,
     {
         self.store.remove_entry(key).map(|(key, value)| {
-            self.changes.insert(key);
+            self.changed.insert(key);
             value
         })
     }
@@ -312,11 +284,11 @@ where
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Changed;
+    /// use zrx_store::decorator::Tracked;
     /// use zrx_store::StoreMut;
     ///
     /// // Create store and initial state
-    /// let mut store = Changed::default();
+    /// let mut store = Tracked::default();
     /// store.insert("key", 42);
     ///
     /// // Remove and return entry
@@ -330,28 +302,28 @@ where
         Q: Key,
     {
         self.store.remove_entry(key).inspect(|(key, _)| {
-            self.changes.insert(key.clone());
+            self.changed.insert(key.clone());
         })
     }
 
     /// Clears the store, removing all items.
     ///
     /// Note that this also clears all recorded changes. In order to know which
-    /// which items are cleared, iterate over the store via [`Changed::keys`][]
-    /// or [`Changed::iter`][] before clearing the store, which emits all keys
+    /// which items are cleared, iterate over the store via [`Tracked::keys`][]
+    /// or [`Tracked::iter`][] before clearing the store, which emits all keys
     /// as well as values, if necessary.
     ///
-    /// [`Changed::iter`]: crate::store::StoreIterable::iter
-    /// [`Changed::keys`]: crate::store::StoreKeys::keys
+    /// [`Tracked::iter`]: crate::store::StoreIterable::iter
+    /// [`Tracked::keys`]: crate::store::StoreKeys::keys
     ///
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Changed;
+    /// use zrx_store::decorator::Tracked;
     /// use zrx_store::{Store, StoreMut};
     ///
     /// // Create store and initial state
-    /// let mut store = Changed::default();
+    /// let mut store = Tracked::default();
     /// store.insert("key", 42);
     ///
     /// // Clear store
@@ -359,26 +331,30 @@ where
     /// assert!(store.is_empty());
     /// ```
     fn clear(&mut self) {
-        self.changes.clear();
+        self.changed.clear();
         self.store.clear();
     }
 }
 
-impl<K, V, S> StoreIterable<K, V> for Changed<K, V, S>
+impl<K, V, S> StoreIterable<K, V> for Tracked<K, V, S>
 where
     K: Key,
     S: StoreIterable<K, V>,
 {
+    type Iter<'a> = S::Iter<'a>
+    where
+        Self: 'a;
+
     /// Returns an iterator over the store.
     ///
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Changed;
+    /// use zrx_store::decorator::Tracked;
     /// use zrx_store::{StoreIterable, StoreMut};
     ///
     /// // Create store and initial state
-    /// let mut store = Changed::default();
+    /// let mut store = Tracked::default();
     /// store.insert("key", 42);
     ///
     /// // Create iterator over the store
@@ -387,30 +363,30 @@ where
     /// }
     /// ```
     #[inline]
-    fn iter<'a>(&'a self) -> impl Iterator<Item = (&'a K, &'a V)>
-    where
-        K: 'a,
-        V: 'a,
-    {
+    fn iter(&self) -> Self::Iter<'_> {
         self.store.iter()
     }
 }
 
-impl<K, V, S> StoreKeys<K, V> for Changed<K, V, S>
+impl<K, V, S> StoreKeys<K, V> for Tracked<K, V, S>
 where
     K: Key,
     S: StoreKeys<K, V>,
 {
-    /// Creates a key iterator over the store.
+    type Keys<'a> = S::Keys<'a>
+    where
+        Self: 'a;
+
+    /// Creates an iterator over the keys of a store.
     ///
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Changed;
+    /// use zrx_store::decorator::Tracked;
     /// use zrx_store::{StoreKeys, StoreMut};
     ///
     /// // Create store and initial state
-    /// let mut store = Changed::default();
+    /// let mut store = Tracked::default();
     /// store.insert("key", 42);
     ///
     /// // Create iterator over the store
@@ -419,29 +395,30 @@ where
     /// }
     /// ```
     #[inline]
-    fn keys<'a>(&'a self) -> impl Iterator<Item = &'a K>
-    where
-        K: 'a,
-    {
+    fn keys(&self) -> Self::Keys<'_> {
         self.store.keys()
     }
 }
 
-impl<K, V, S> StoreValues<K, V> for Changed<K, V, S>
+impl<K, V, S> StoreValues<K, V> for Tracked<K, V, S>
 where
     K: Key,
     S: StoreValues<K, V>,
 {
-    /// Creates a value iterator over the store.
+    type Values<'a> = S::Values<'a>
+    where
+        Self: 'a;
+
+    /// Creates an iterator over the values of a store.
     ///
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Changed;
+    /// use zrx_store::decorator::Tracked;
     /// use zrx_store::{StoreMut, StoreValues};
     ///
     /// // Create store and initial state
-    /// let mut store = Changed::default();
+    /// let mut store = Tracked::default();
     /// store.insert("key", 42);
     ///
     /// // Create iterator over the store
@@ -450,30 +427,31 @@ where
     /// }
     /// ```
     #[inline]
-    fn values<'a>(&'a self) -> impl Iterator<Item = &'a V>
-    where
-        V: 'a,
-    {
+    fn values(&self) -> Self::Values<'_> {
         self.store.values()
     }
 }
 
-impl<K, V, S> StoreRange<K, V> for Changed<K, V, S>
+impl<K, V, S> StoreRange<K, V> for Tracked<K, V, S>
 where
     K: Key,
     S: StoreRange<K, V>,
 {
-    /// Creates a range iterator over the store.
+    type Range<'a> = S::Range<'a>
+    where
+        Self: 'a;
+
+    /// Creates an iterator over a range of items in a store.
     ///
     /// # Examples
     ///
     /// ```
     /// use std::collections::BTreeMap;
-    /// use zrx_store::decorator::Changed;
+    /// use zrx_store::decorator::Tracked;
     /// use zrx_store::{StoreMut, StoreRange};
     ///
     /// // Create store and initial state
-    /// let mut store = Changed::<_, _, BTreeMap<_, _>>::new();
+    /// let mut store = Tracked::<_, _, BTreeMap<_, _>>::new();
     /// store.insert("a", 42);
     /// store.insert("b", 84);
     ///
@@ -483,11 +461,9 @@ where
     /// }
     /// ```
     #[inline]
-    fn range<'a, R>(&'a self, range: R) -> impl Iterator<Item = (&'a K, &'a V)>
+    fn range<R>(&self, range: R) -> Self::Range<'_>
     where
         R: RangeBounds<K>,
-        K: 'a,
-        V: 'a,
     {
         self.store.range(range)
     }
@@ -495,7 +471,43 @@ where
 
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> FromIterator<(K, V)> for Changed<K, V, S>
+impl<K, V, S> Index<usize> for Tracked<K, V, S>
+where
+    K: Key,
+    S: Store<K, V> + Index<usize, Output = K>,
+{
+    type Output = K;
+
+    /// Returns a reference to the key at the index.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the index is out of bounds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_store::decorator::{Indexed, Tracked};
+    /// use zrx_store::StoreMut;
+    ///
+    /// // Create store and initial state
+    /// let mut store = Tracked::<_, _, Indexed<_, _>>::new();
+    /// store.insert("a", 42);
+    /// store.insert("b", 84);
+    ///
+    /// // Obtain reference to key
+    /// let key = &store[1];
+    /// assert_eq!(key, &"b");
+    /// ```
+    #[inline]
+    fn index(&self, n: usize) -> &Self::Output {
+        &self.store[n]
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+impl<K, V, S> FromIterator<(K, V)> for Tracked<K, V, S>
 where
     K: Key,
     S: StoreMut<K, V> + StoreFromIterator<K, V>,
@@ -506,7 +518,7 @@ where
     ///
     /// ```
     /// use std::collections::HashMap;
-    /// use zrx_store::decorator::Changed;
+    /// use zrx_store::decorator::Tracked;
     /// use zrx_store::StoreMut;
     ///
     /// // Create a vector of key-value pairs
@@ -518,7 +530,7 @@ where
     /// ];
     ///
     /// // Create store from iterator
-    /// let store: Changed<_, _, HashMap<_, _>> =
+    /// let store: Tracked<_, _, HashMap<_, _>> =
     ///     items.into_iter().collect();
     ///
     /// // Create iterator over the store
@@ -533,13 +545,13 @@ where
     {
         Self {
             store: S::from_iter(iter),
-            changes: HashSet::default(),
+            changed: HashSet::default(),
             marker: PhantomData,
         }
     }
 }
 
-impl<K, V, S> IntoIterator for Changed<K, V, S>
+impl<K, V, S> IntoIterator for Tracked<K, V, S>
 where
     K: Key,
     S: Store<K, V> + StoreIntoIterator<K, V>,
@@ -547,7 +559,7 @@ where
     type Item = (K, V);
     type IntoIter = S::IntoIter;
 
-    /// Creates an iterator over the store.
+    /// Creates an iterator over the items of a store.
     ///
     /// This method consumes the store, and collects it into a vector, since
     /// there's currently no way to implement this due to the absence of ATPIT
@@ -557,11 +569,11 @@ where
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Changed;
+    /// use zrx_store::decorator::Tracked;
     /// use zrx_store::StoreMut;
     ///
     /// // Create store and initial state
-    /// let mut store = Changed::default();
+    /// let mut store = Tracked::default();
     /// store.insert("key", 42);
     ///
     /// // Create iterator over the store
@@ -574,10 +586,42 @@ where
     }
 }
 
+#[allow(clippy::into_iter_without_iter)]
+impl<'a, K, V, S> IntoIterator for &'a Tracked<K, V, S>
+where
+    K: Key,
+    S: StoreIterable<K, V>,
+{
+    type Item = (&'a K, &'a V);
+    type IntoIter = S::Iter<'a>;
+
+    /// Creates an iterator over the items of a store.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_store::decorator::Tracked;
+    /// use zrx_store::{StoreIterable, StoreMut};
+    ///
+    /// // Create store and initial state
+    /// let mut store = Tracked::default();
+    /// store.insert("key", 42);
+    ///
+    /// // Create iterator over the store
+    /// for (key, value) in &store {
+    ///     println!("{key}: {value}");
+    /// }
+    /// ```
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 // ----------------------------------------------------------------------------
 
 #[allow(clippy::implicit_hasher)]
-impl<K, V> Default for Changed<K, V, HashMap<K, V>>
+impl<K, V> Default for Tracked<K, V, HashMap<K, V>>
 where
     K: Key,
 {
@@ -592,11 +636,11 @@ where
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Changed;
+    /// use zrx_store::decorator::Tracked;
     /// use zrx_store::StoreMut;
     ///
     /// // Create store and initial state
-    /// let mut store = Changed::default();
+    /// let mut store = Tracked::default();
     /// store.insert("key", 42);
     /// ```
     #[inline]
@@ -607,16 +651,16 @@ where
 
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> fmt::Debug for Changed<K, V, S>
+impl<K, V, S> fmt::Debug for Tracked<K, V, S>
 where
     K: fmt::Debug + Key,
     S: fmt::Debug + Store<K, V>,
 {
     /// Formats the tracking decorator for debugging.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Changed")
+        f.debug_struct("Tracked")
             .field("store", &self.store)
-            .field("changes", &self.changes)
+            .field("changes", &self.changed)
             .finish()
     }
 }

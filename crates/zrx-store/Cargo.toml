@@ -38,9 +38,7 @@ workspace = true
 
 [dependencies]
 ahash.workspace = true
-litemap = { workspace = true, optional = true }
 slab.workspace = true
 
 [features]
 default = []
-litemap = ["dep:litemap"]

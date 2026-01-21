@@ -23,12 +23,15 @@
 
 // ----------------------------------------------------------------------------
 
-//! Iterator over an indexing decorator.
+//! Iterator implementations for [`Indexed`].
 
+use ahash::HashMap;
 use std::marker::PhantomData;
-use std::vec;
+use std::ops::{Bound, RangeBounds};
+use std::slice;
 
-use crate::store::{Key, StoreMut};
+use crate::store::key::Key;
+use crate::store::{Store, StoreIterable, StoreKeys, StoreValues};
 
 use super::Indexed;
 
@@ -36,35 +39,46 @@ use super::Indexed;
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Iterator over an indexing decorator.
-#[derive(Debug)]
-pub struct IntoIter<K, V, S> {
+/// Iterator over the items of an [`Indexed`] store.
+pub struct Iter<'a, K, V, S = HashMap<K, V>> {
     /// Underlying store.
-    store: S,
+    store: &'a S,
     /// Ordering of values.
-    ordering: vec::IntoIter<K>,
+    ordering: slice::Iter<'a, K>,
+    /// Capture types.
+    marker: PhantomData<V>,
+}
+
+/// Iterator over the values of an [`Indexed`] store.
+pub struct Values<'a, K, V, S = HashMap<K, V>> {
+    /// Underlying store.
+    store: &'a S,
+    /// Ordering of values.
+    ordering: slice::Iter<'a, K>,
     /// Capture types.
     marker: PhantomData<V>,
 }
 
 // ----------------------------------------------------------------------------
-// Trait implementations
+// Implementations
 // ----------------------------------------------------------------------------
 
-impl<K, V, S, C> IntoIterator for Indexed<K, V, S, C>
+impl<K, V, S, C> Indexed<K, V, S, C>
 where
     K: Key,
-    S: StoreMut<K, V>,
+    V: Ord,
+    S: Store<K, V>,
 {
-    type Item = (K, V);
-    type IntoIter = IntoIter<K, V, S>;
-
-    /// Creates an iterator over the store.
+    /// Creates an iterator over a range of items in a store.
     ///
-    /// This method consumes the store, and collects it into a vector, since
-    /// there's currently no way to implement this due to the absence of ATPIT
-    /// (associated type position impl trait) support in stable Rust. When the
-    /// feature is stabilized, we can switch to a more efficient approach.
+    /// This method is not implemented as part of [`StoreRange`][], because it
+    /// deviates from the trait, as it uses numeric indices instead of keys.
+    ///
+    /// [`StoreRange`]: crate::store::StoreRange
+    ///
+    /// # Panics
+    ///
+    /// Panics if the range is out of bounds.
     ///
     /// # Examples
     ///
@@ -74,18 +88,149 @@ where
     ///
     /// // Create store and initial state
     /// let mut store = Indexed::default();
+    /// store.insert("a", 42);
+    /// store.insert("b", 22);
+    /// store.insert("c", 32);
+    /// store.insert("d", 12);
+    ///
+    /// // Create iterator over the store
+    /// for (key, value) in store.range(2..4) {
+    ///     println!("{key}: {value}");
+    /// }
+    /// ```
+    pub fn range<R>(&self, range: R) -> Iter<'_, K, V, S>
+    where
+        R: RangeBounds<usize>,
+    {
+        // Compute length
+        let len = self.ordering.len();
+
+        // Compute range start
+        let start = match range.start_bound() {
+            Bound::Included(&start) => start,
+            Bound::Excluded(&start) => start + 1,
+            Bound::Unbounded => 0,
+        };
+
+        // Compute range end
+        let end = match range.end_bound() {
+            Bound::Included(&end) => end + 1,
+            Bound::Excluded(&end) => end,
+            Bound::Unbounded => len,
+        };
+
+        // Create range iterator
+        Iter {
+            ordering: self.ordering[start..end].iter(),
+            store: &self.store,
+            marker: PhantomData,
+        }
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Trait implementations
+// ----------------------------------------------------------------------------
+
+impl<K, V, S, C> StoreIterable<K, V> for Indexed<K, V, S, C>
+where
+    K: Key,
+    S: Store<K, V>,
+{
+    type Iter<'a> = Iter<'a, K, V, S>
+    where
+        Self: 'a;
+
+    /// Creates an iterator over the items of a store.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_store::decorator::Indexed;
+    /// use zrx_store::{StoreIterable, StoreMut};
+    ///
+    /// // Create store and initial state
+    /// let mut store = Indexed::default();
     /// store.insert("key", 42);
     ///
     /// // Create iterator over the store
-    /// for (key, value) in store {
+    /// for (key, value) in store.iter() {
     ///     println!("{key}: {value}");
     /// }
     /// ```
     #[inline]
-    fn into_iter(self) -> Self::IntoIter {
-        IntoIter {
-            store: self.store,
-            ordering: self.ordering.into_iter(),
+    fn iter(&self) -> Self::Iter<'_> {
+        Iter {
+            store: &self.store,
+            ordering: self.ordering.iter(),
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<K, V, S, C> StoreKeys<K, V> for Indexed<K, V, S, C>
+where
+    K: Key,
+    S: Store<K, V>,
+{
+    type Keys<'a> = Keys<'a, K>
+    where
+        Self: 'a;
+
+    /// Creates an iterator over the keys of a store.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_store::decorator::Indexed;
+    /// use zrx_store::{StoreKeys, StoreMut};
+    ///
+    /// // Create store and initial state
+    /// let mut store = Indexed::default();
+    /// store.insert("key", 42);
+    ///
+    /// // Create iterator over the store
+    /// for key in store.keys() {
+    ///     println!("{key}");
+    /// }
+    /// ```
+    #[inline]
+    fn keys(&self) -> Self::Keys<'_> {
+        self.ordering.iter()
+    }
+}
+
+impl<K, V, S, C> StoreValues<K, V> for Indexed<K, V, S, C>
+where
+    K: Key,
+    S: Store<K, V>,
+{
+    type Values<'a> = Values<'a, K, V, S>
+    where
+        Self: 'a;
+
+    /// Creates an iterator over the values of a store.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_store::decorator::Indexed;
+    /// use zrx_store::{StoreMut, StoreValues};
+    ///
+    /// // Create store and initial state
+    /// let mut store = Indexed::default();
+    /// store.insert("key", 42);
+    ///
+    /// // Create iterator over the store
+    /// for value in store.values() {
+    ///     println!("{value}");
+    /// }
+    /// ```
+    #[inline]
+    fn values(&self) -> Self::Values<'_> {
+        Values {
+            store: &self.store,
+            ordering: self.ordering.iter(),
             marker: PhantomData,
         }
     }
@@ -93,20 +238,19 @@ where
 
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> Iterator for IntoIter<K, V, S>
+impl<'a, K, V, S> Iterator for Iter<'a, K, V, S>
 where
     K: Key,
-    S: StoreMut<K, V>,
+    V: 'a,
+    S: Store<K, V>,
 {
-    type Item = (K, V);
+    type Item = (&'a K, &'a V);
 
     /// Returns the next item.
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        match self.ordering.next() {
-            Some(key) => self.store.remove(&key).map(|value| (key, value)),
-            None => None,
-        }
+        let opt = self.ordering.next();
+        opt.and_then(|key| self.store.get(key).map(|value| (key, value)))
     }
 
     /// Returns the bounds on the remaining length of the iterator.
@@ -116,10 +260,11 @@ where
     }
 }
 
-impl<K, V, S> ExactSizeIterator for IntoIter<K, V, S>
+impl<'a, K, V, S> ExactSizeIterator for Iter<'a, K, V, S>
 where
     K: Key,
-    S: StoreMut<K, V>,
+    V: 'a,
+    S: Store<K, V>,
 {
     /// Returns the exact remaining length of the iterator.
     #[inline]
@@ -127,3 +272,47 @@ where
         self.ordering.len()
     }
 }
+
+// ----------------------------------------------------------------------------
+
+impl<'a, K, V, S> Iterator for Values<'a, K, V, S>
+where
+    K: Key,
+    V: 'a,
+    S: Store<K, V>,
+{
+    type Item = &'a V;
+
+    /// Returns the next item.
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        let opt = self.ordering.next();
+        opt.and_then(|key| self.store.get(key))
+    }
+
+    /// Returns the bounds on the remaining length of the iterator.
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.ordering.size_hint()
+    }
+}
+
+impl<'a, K, V, S> ExactSizeIterator for Values<'a, K, V, S>
+where
+    K: Key,
+    V: 'a,
+    S: Store<K, V>,
+{
+    /// Returns the exact remaining length of the iterator.
+    #[inline]
+    fn len(&self) -> usize {
+        self.ordering.len()
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Type aliases
+// ----------------------------------------------------------------------------
+
+/// Iterator over the keys of an [`Indexed`] store.
+pub type Keys<'a, K> = slice::Iter<'a, K>;

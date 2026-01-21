@@ -47,10 +47,7 @@ zrx-store.workspace = true
 zrx-stream.workspace = true
 
 [features]
-default = ["litemap"]
-litemap = [
-  "zrx-store/litemap"
-]
+default = []
 tracing = [
   "zrx-scheduler/tracing",
   "zrx-stream/tracing"

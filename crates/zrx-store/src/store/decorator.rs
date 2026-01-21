@@ -25,10 +25,10 @@
 
 //! Store decorators.
 
-pub mod changed;
 pub mod indexed;
 pub mod ordered;
+pub mod tracked;
 
-pub use changed::Changed;
 pub use indexed::Indexed;
 pub use ordered::Ordered;
+pub use tracked::Tracked;

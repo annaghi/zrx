@@ -23,78 +23,84 @@
 
 // ----------------------------------------------------------------------------
 
-//! Comparator.
+//! Consuming iterator over match set.
 
-use std::cmp::Ordering;
-use std::fmt::Debug;
-
-mod comparable;
-
-pub use comparable::Comparable;
-
-// ----------------------------------------------------------------------------
-// Traits
-// ----------------------------------------------------------------------------
-
-/// Comparator.
-///
-/// This data type defines a comparator for values of type `T`, which can be
-/// used to customize the ordering of values in stores. If it's a zero-sized
-/// type (ZST), e.g., a struct without fields or closure that doesn't capture
-/// any variables, it's optimized away, resulting in zero-runtime overhead.
-pub trait Comparator<T> {
-    /// Compares two values.
-    fn cmp(&self, a: &T, b: &T) -> Ordering;
-}
+use super::Matches;
 
 // ----------------------------------------------------------------------------
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Comparator for ascending order.
-#[derive(Clone, Debug)]
-pub struct Ascending;
-
-/// Comparator for descending order.
-#[derive(Clone, Debug)]
-pub struct Descending;
+/// Consuming iterator over match set.
+pub struct IntoIter {
+    /// Blocks of bits.
+    data: Vec<u64>,
+    /// Current block index.
+    index: usize,
+    /// Current block.
+    block: u64,
+}
 
 // ----------------------------------------------------------------------------
 // Trait implementations
 // ----------------------------------------------------------------------------
 
-impl<T> Comparator<T> for Ascending
-where
-    T: Ord,
-{
-    /// Compares two values in ascending order.
-    #[inline]
-    fn cmp(&self, a: &T, b: &T) -> Ordering {
-        a.cmp(b)
-    }
-}
+impl IntoIterator for Matches {
+    type Item = usize;
+    type IntoIter = IntoIter;
 
-impl<T> Comparator<T> for Descending
-where
-    T: Ord,
-{
-    /// Compares two values in descending order.
+    /// Creates a consuming iterator over the match set.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_id::Matches;
+    ///
+    /// // Create match set from iterator
+    /// let mut matches = Matches::from_iter([0, 1]);
+    ///
+    /// // Create iterator over match set
+    /// for index in matches {
+    ///     println!("{index:?}");
+    /// }
+    /// ```
     #[inline]
-    fn cmp(&self, a: &T, b: &T) -> Ordering {
-        b.cmp(a)
+    fn into_iter(self) -> Self::IntoIter {
+        let block = self.data[0];
+        IntoIter {
+            data: self.data,
+            index: 0,
+            block,
+        }
     }
 }
 
 // ----------------------------------------------------------------------------
-// Blanket implementations
-// ----------------------------------------------------------------------------
 
-impl<T, F> Comparator<T> for F
-where
-    F: Fn(&T, &T) -> Ordering,
-{
-    #[inline]
-    fn cmp(&self, a: &T, b: &T) -> Ordering {
-        self(a, b)
+impl Iterator for IntoIter {
+    type Item = usize;
+
+    /// Returns the next match.
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if self.block != 0 {
+                let num = self.block.trailing_zeros() as usize;
+
+                // Clear the lowest bit and return it
+                self.block &= self.block - 1;
+                return Some(self.index << 6 | num);
+            }
+
+            // Move to the next block
+            self.index += 1;
+
+            // If all blocks are exhausted, we're done
+            if self.index >= self.data.len() {
+                return None;
+            }
+
+            // Update the current block to the next block
+            self.block = self.data[self.index];
+        }
     }
 }
