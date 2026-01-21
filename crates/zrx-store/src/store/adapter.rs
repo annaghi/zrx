@@ -23,7 +23,7 @@
 
 // ----------------------------------------------------------------------------
 
-//! Store implementations for collections.
+//! Store adapters for various implementations.
 
 mod collections;
 pub mod slab;
