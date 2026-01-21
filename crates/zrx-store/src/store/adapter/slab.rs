@@ -28,7 +28,8 @@
 use slab::Slab;
 use std::borrow::Borrow;
 
-use crate::store::{Key, Store, StoreMut, StoreMutRef};
+use crate::store::key::Key;
+use crate::store::{Store, StoreMut, StoreMutRef};
 
 mod iter;
 

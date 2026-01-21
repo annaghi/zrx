@@ -45,8 +45,8 @@ use std::time::Instant;
 /// Note that mutable data needs to be stored outside of the queue, as items are
 /// immutable. The built-in [`Queue`][] uses a [`Slab`][] for this matter.
 ///
-/// [`Queue`]: crate::store::queue::Queue
-/// [`Queue::take`]: crate::store::queue::Queue::take
+/// [`Queue`]: crate::queue::Queue
+/// [`Queue::take`]: crate::queue::Queue::take
 /// [`Slab`]: slab::Slab
 #[derive(Clone, Debug)]
 pub struct Item<T = usize> {

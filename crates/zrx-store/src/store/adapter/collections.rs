@@ -23,19 +23,16 @@
 
 // ----------------------------------------------------------------------------
 
-//! Store implementations for [`HashMap`].
+//! Store implementations for collections.
 
 use std::borrow::Borrow;
-use std::collections::hash_map::{Iter, IterMut, Keys, Values};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::hash::BuildHasher;
 
-use crate::store::{
-    Key, Store, StoreIterable, StoreIterableMut, StoreKeys, StoreMut,
-    StoreMutRef, StoreValues,
-};
+use crate::store::key::Key;
+use crate::store::{Store, StoreMut, StoreMutRef};
 
-use super::update_if_changed;
+mod iter;
 
 // ----------------------------------------------------------------------------
 // Trait implementations
@@ -288,130 +285,266 @@ where
     }
 }
 
-impl<K, V, S> StoreIterable<K, V> for HashMap<K, V, S>
+// ----------------------------------------------------------------------------
+
+impl<K, V> Store<K, V> for BTreeMap<K, V>
 where
     K: Key,
-    S: BuildHasher,
 {
-    type Iter<'a> = Iter<'a, K, V>
-    where
-        Self: 'a;
-
-    /// Creates an iterator over the store.
+    /// Returns a reference to the value identified by the key.
     ///
     /// # Examples
     ///
     /// ```
-    /// use std::collections::HashMap;
+    /// use std::collections::BTreeMap;
+    /// use zrx_store::{Store, StoreMut};
+    ///
+    /// // Create store and initial state
+    /// let mut store = BTreeMap::new();
+    /// store.insert("key", 42);
+    ///
+    /// // Obtain reference to value
+    /// let value = store.get(&"key");
+    /// assert_eq!(value, Some(&42));
+    /// ```
+    #[inline]
+    fn get<Q>(&self, key: &Q) -> Option<&V>
+    where
+        K: Borrow<Q>,
+        Q: Key,
+    {
+        BTreeMap::get(self, key)
+    }
+
+    /// Returns whether the store contains the key.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::BTreeMap;
+    /// use zrx_store::{Store, StoreMut};
+    ///
+    /// // Create store and initial state
+    /// let mut store = BTreeMap::new();
+    /// store.insert("key", 42);
+    ///
+    /// // Ensure presence of key
+    /// let check = store.contains_key(&"key");
+    /// assert_eq!(check, true);
+    /// ```
+    #[inline]
+    fn contains_key<Q>(&self, key: &Q) -> bool
+    where
+        K: Borrow<Q>,
+        Q: Key,
+    {
+        BTreeMap::contains_key(self, key)
+    }
+
+    /// Returns the number of items in the store.
+    #[inline]
+    fn len(&self) -> usize {
+        BTreeMap::len(self)
+    }
+}
+
+impl<K, V> StoreMut<K, V> for BTreeMap<K, V>
+where
+    K: Key,
+{
+    /// Inserts the value identified by the key.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::BTreeMap;
+    /// use zrx_store::StoreMut;
+    ///
+    /// // Create store and insert value
+    /// let mut store = BTreeMap::new();
+    /// store.insert("key", 42);
+    /// ```
+    #[inline]
+    fn insert(&mut self, key: K, value: V) -> Option<V> {
+        BTreeMap::insert(self, key, value)
+    }
+
+    /// Inserts the value identified by the key if it changed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::BTreeMap;
+    /// use zrx_store::StoreMut;
+    ///
+    /// // Create store
+    /// let mut store = BTreeMap::new();
+    ///
+    /// // Insert value
+    /// let check = store.insert_if_changed(&"key", &42);
+    /// assert_eq!(check, true);
+    ///
+    /// // Ignore unchanged value
+    /// let check = store.insert_if_changed(&"key", &42);
+    /// assert_eq!(check, false);
+    ///
+    /// // Update value
+    /// let check = store.insert_if_changed(&"key", &84);
+    /// assert_eq!(check, true);
+    /// ```
+    #[inline]
+    fn insert_if_changed(&mut self, key: &K, value: &V) -> bool
+    where
+        V: Clone + Eq,
+    {
+        BTreeMap::get_mut(self, key)
+            .map(|check| update_if_changed(check, value))
+            .unwrap_or_else(|| {
+                BTreeMap::insert(self, key.clone(), value.clone());
+                true
+            })
+    }
+
+    /// Removes the value identified by the key.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::BTreeMap;
     /// use zrx_store::StoreMut;
     ///
     /// // Create store and initial state
-    /// let mut store = HashMap::new();
+    /// let mut store = BTreeMap::new();
     /// store.insert("key", 42);
     ///
-    /// // Create iterator over the store
-    /// for (key, value) in store {
-    ///     println!("{key}: {value}");
-    /// }
+    /// // Remove and return value
+    /// let value = store.remove(&"key");
+    /// assert_eq!(value, Some(42));
     /// ```
     #[inline]
-    fn iter(&self) -> Self::Iter<'_> {
-        HashMap::iter(self)
-    }
-}
-
-impl<K, V, S> StoreIterableMut<K, V> for HashMap<K, V, S>
-where
-    K: Key,
-    S: BuildHasher,
-{
-    type IterMut<'a> = IterMut<'a, K, V>
+    fn remove<Q>(&mut self, key: &Q) -> Option<V>
     where
-        Self: 'a;
+        K: Borrow<Q>,
+        Q: Key,
+    {
+        BTreeMap::remove(self, key)
+    }
 
-    /// Creates a mutable iterator over the store.
+    /// Removes the value identified by the key and returns both.
     ///
     /// # Examples
     ///
     /// ```
-    /// use std::collections::HashMap;
-    /// use zrx_store::{StoreIterableMut, StoreMut};
+    /// use std::collections::BTreeMap;
+    /// use zrx_store::StoreMut;
     ///
     /// // Create store and initial state
-    /// let mut store = HashMap::new();
+    /// let mut store = BTreeMap::new();
     /// store.insert("key", 42);
     ///
-    /// // Create iterator over the store
-    /// for (key, value) in store.iter_mut() {
-    ///     println!("{key}: {value}");
-    /// }
+    /// // Remove and return entry
+    /// let entry = store.remove_entry(&"key");
+    /// assert_eq!(entry, Some(("key", 42)));
     /// ```
     #[inline]
-    fn iter_mut(&mut self) -> Self::IterMut<'_> {
-        HashMap::iter_mut(self)
-    }
-}
-
-impl<K, V, S> StoreKeys<K, V> for HashMap<K, V, S>
-where
-    K: Key,
-    S: BuildHasher,
-{
-    type Keys<'a> = Keys<'a, K, V>
+    fn remove_entry<Q>(&mut self, key: &Q) -> Option<(K, V)>
     where
-        Self: 'a;
+        K: Borrow<Q>,
+        Q: Key,
+    {
+        BTreeMap::remove_entry(self, key)
+    }
 
-    /// Creates a key iterator over the store.
+    /// Clears the store, removing all items.
     ///
     /// # Examples
     ///
     /// ```
-    /// use std::collections::HashMap;
-    /// use zrx_store::{StoreKeys, StoreMut};
+    /// use std::collections::BTreeMap;
+    /// use zrx_store::StoreMut;
     ///
     /// // Create store and initial state
-    /// let mut store = HashMap::new();
+    /// let mut store = BTreeMap::new();
     /// store.insert("key", 42);
     ///
-    /// // Create iterator over the store
-    /// for key in store.keys() {
-    ///     println!("{key}");
-    /// }
+    /// // Clear store
+    /// store.clear();
+    /// assert!(store.is_empty());
     /// ```
     #[inline]
-    fn keys(&self) -> Self::Keys<'_> {
-        HashMap::keys(self)
+    fn clear(&mut self) {
+        BTreeMap::clear(self);
     }
 }
 
-impl<K, V, S> StoreValues<K, V> for HashMap<K, V, S>
+impl<K, V> StoreMutRef<K, V> for BTreeMap<K, V>
 where
     K: Key,
-    S: BuildHasher,
 {
-    type Values<'a> = Values<'a, K, V>
-    where
-        Self: 'a;
-
-    /// Creates a value iterator over the store.
+    /// Returns a mutable reference to the value identified by the key.
     ///
     /// # Examples
     ///
     /// ```
-    /// use std::collections::HashMap;
-    /// use zrx_store::{StoreMut, StoreValues};
+    /// use std::collections::BTreeMap;
+    /// use zrx_store::{StoreMut, StoreMutRef};
     ///
     /// // Create store and initial state
-    /// let mut store = HashMap::new();
+    /// let mut store = BTreeMap::new();
     /// store.insert("key", 42);
     ///
-    /// // Create iterator over the store
-    /// for value in store.values() {
-    ///     println!("{value}");
-    /// }
+    /// // Obtain mutable reference to value
+    /// let mut value = store.get_mut(&"key");
+    /// assert_eq!(value, Some(&mut 42));
     /// ```
     #[inline]
-    fn values(&self) -> Self::Values<'_> {
-        HashMap::values(self)
+    fn get_mut<Q>(&mut self, key: &Q) -> Option<&mut V>
+    where
+        K: Borrow<Q>,
+        Q: Key,
+    {
+        BTreeMap::get_mut(self, key)
+    }
+
+    /// Returns a mutable reference to the value or creates the default.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::BTreeMap;
+    /// use zrx_store::StoreMutRef;
+    ///
+    /// // Create store
+    /// let mut store = BTreeMap::new();
+    /// # let _: BTreeMap<_, i32> = store;
+    ///
+    /// // Obtain mutable reference to value
+    /// let value = store.get_or_insert_default(&"key");
+    /// assert_eq!(value, &mut 0);
+    /// ```
+    #[inline]
+    fn get_or_insert_default(&mut self, key: &K) -> &mut V
+    where
+        V: Default,
+    {
+        BTreeMap::entry(self, key.clone()).or_default()
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Functions
+// ----------------------------------------------------------------------------
+
+/// Updates the prior value if it has changed.
+#[inline]
+fn update_if_changed<V>(prior: &mut V, value: &V) -> bool
+where
+    V: Clone + Eq,
+{
+    if prior == value {
+        false
+    } else {
+        *prior = value.clone();
+        true
     }
 }

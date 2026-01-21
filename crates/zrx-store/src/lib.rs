@@ -28,12 +28,13 @@
 pub mod queue;
 mod store;
 
+pub use store::adapter;
 pub use store::behavior;
-pub use store::collection;
 pub use store::comparator::{self, Comparator};
 pub use store::decorator;
+pub use store::key::Key;
 pub use store::{
-    Key, Store, StoreFromIterator, StoreIntoIterator, StoreIterable,
+    Store, StoreFromIterator, StoreIntoIterator, StoreIterable,
     StoreIterableMut, StoreKeys, StoreMut, StoreMutRef, StoreRange,
     StoreValues,
 };

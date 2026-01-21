@@ -25,24 +25,5 @@
 
 //! Store implementations for collections.
 
-mod btree_map;
-mod hash_map;
+mod collections;
 pub mod slab;
-
-// ----------------------------------------------------------------------------
-// Functions
-// ----------------------------------------------------------------------------
-
-/// Updates the prior value if it has changed.
-#[inline]
-fn update_if_changed<V>(prior: &mut V, value: &V) -> bool
-where
-    V: Clone + Eq,
-{
-    if prior == value {
-        false
-    } else {
-        *prior = value.clone();
-        true
-    }
-}

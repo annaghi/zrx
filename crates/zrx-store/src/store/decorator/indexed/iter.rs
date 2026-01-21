@@ -25,11 +25,13 @@
 
 //! Store iterator implementations for [`Indexed`].
 
+use ahash::HashMap;
 use std::marker::PhantomData;
 use std::ops::{Bound, RangeBounds};
 use std::slice;
 
-use crate::store::{Key, Store, StoreIterable, StoreKeys, StoreValues};
+use crate::store::key::Key;
+use crate::store::{Store, StoreIterable, StoreKeys, StoreValues};
 
 use super::Indexed;
 
@@ -38,7 +40,7 @@ use super::Indexed;
 // ----------------------------------------------------------------------------
 
 /// Iterator over [`Indexed`].
-pub struct Iter<'a, K, V, S> {
+pub struct Iter<'a, K, V, S = HashMap<K, V>> {
     /// Underlying store.
     store: &'a S,
     /// Ordering of values.
@@ -48,7 +50,7 @@ pub struct Iter<'a, K, V, S> {
 }
 
 /// Value iterator over [`Indexed`].
-pub struct Values<'a, K, V, S> {
+pub struct Values<'a, K, V, S = HashMap<K, V>> {
     /// Underlying store.
     store: &'a S,
     /// Ordering of values.
@@ -258,6 +260,21 @@ where
     }
 }
 
+impl<'a, K, V, S> ExactSizeIterator for Iter<'a, K, V, S>
+where
+    K: Key,
+    V: 'a,
+    S: Store<K, V>,
+{
+    /// Returns the exact remaining length of the iterator.
+    #[inline]
+    fn len(&self) -> usize {
+        self.ordering.len()
+    }
+}
+
+// ----------------------------------------------------------------------------
+
 impl<'a, K, V, S> Iterator for Values<'a, K, V, S>
 where
     K: Key,
@@ -277,6 +294,19 @@ where
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.ordering.size_hint()
+    }
+}
+
+impl<'a, K, V, S> ExactSizeIterator for Values<'a, K, V, S>
+where
+    K: Key,
+    V: 'a,
+    S: Store<K, V>,
+{
+    /// Returns the exact remaining length of the iterator.
+    #[inline]
+    fn len(&self) -> usize {
+        self.ordering.len()
     }
 }
 

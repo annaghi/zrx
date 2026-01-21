@@ -25,8 +25,8 @@
 
 //! Store delta behavior.
 
+use crate::store::key::Key;
 use crate::store::{StoreIterable, StoreMut};
-use crate::Key;
 
 // ----------------------------------------------------------------------------
 // Traits

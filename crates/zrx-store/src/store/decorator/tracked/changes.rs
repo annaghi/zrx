@@ -23,30 +23,32 @@
 
 // ----------------------------------------------------------------------------
 
-//! Store iterator implementations for [`Changed`].
+//! Store iterator implementations for [`Tracked`].
 
+use ahash::HashMap;
 use std::collections::hash_set;
 use std::marker::PhantomData;
 use std::mem;
 
-use crate::store::{Key, Store};
+use crate::store::key::Key;
+use crate::store::Store;
 
-use super::Changed;
+use super::Tracked;
 
 // ----------------------------------------------------------------------------
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Iterator over changed items of [`Changed`].
-pub struct Changes<'a, K, V, S>
+/// Iterator over changed items of [`Tracked`].
+pub struct Changes<'a, K, V, S = HashMap<K, V>>
 where
     K: Key,
     S: Store<K, V>,
 {
     /// Underlying store.
     store: &'a S,
-    /// Inner iterator.
-    inner: hash_set::IntoIter<K>,
+    /// Keys of changed items.
+    changed: hash_set::IntoIter<K>,
     /// Capture types.
     marker: PhantomData<V>,
 }
@@ -55,7 +57,7 @@ where
 // Implementations
 // ----------------------------------------------------------------------------
 
-impl<K, V, S> Changed<K, V, S>
+impl<K, V, S> Tracked<K, V, S>
 where
     K: Key,
     S: Store<K, V>,
@@ -70,11 +72,11 @@ where
     /// # Examples
     ///
     /// ```
-    /// use zrx_store::decorator::Changed;
+    /// use zrx_store::decorator::Tracked;
     /// use zrx_store::StoreMut;
     ///
     /// // Create store and initial state
-    /// let mut store = Changed::default();
+    /// let mut store = Tracked::default();
     /// store.insert("a", 4);
     /// store.insert("b", 2);
     /// store.insert("c", 3);
@@ -88,7 +90,7 @@ where
     pub fn changes(&mut self) -> Changes<'_, K, V, S> {
         Changes {
             store: &self.store,
-            inner: mem::take(&mut self.changes).into_iter(),
+            changed: mem::take(&mut self.changed).into_iter(),
             marker: PhantomData,
         }
     }
@@ -109,7 +111,7 @@ where
     /// Returns the next changed item.
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|key| {
+        self.changed.next().map(|key| {
             let opt = self.store.get(&key);
             (key, opt)
         })
@@ -118,7 +120,7 @@ where
     /// Returns the bounds on the remaining length of the iterator.
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        self.inner.size_hint()
+        self.changed.size_hint()
     }
 }
 
@@ -131,6 +133,6 @@ where
     /// Returns the exact remaining length of the iterator.
     #[inline]
     fn len(&self) -> usize {
-        self.inner.len()
+        self.changed.len()
     }
 }

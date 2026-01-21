@@ -29,7 +29,8 @@ use std::collections::btree_map;
 use std::slice;
 
 use crate::store::comparator::{Ascending, Comparable};
-use crate::store::{Key, Store, StoreIterable, StoreKeys, StoreValues};
+use crate::store::key::Key;
+use crate::store::{Store, StoreIterable, StoreKeys, StoreValues};
 
 use super::Ordered;
 
@@ -50,7 +51,7 @@ pub struct Iter<'a, K, V, C = Ascending> {
 /// Key iterator over [`Ordered`].
 pub struct Keys<'a, K, V, C = Ascending> {
     /// Ordering of values.
-    ordering: btree_map::Iter<'a, Comparable<V, C>, Vec<K>>,
+    ordering: btree_map::Values<'a, Comparable<V, C>, Vec<K>>,
     /// Current keys.
     keys: slice::Iter<'a, K>,
 }
@@ -130,7 +131,7 @@ where
     #[inline]
     fn keys(&self) -> Self::Keys<'_> {
         Keys {
-            ordering: self.ordering.iter(),
+            ordering: self.ordering.values(),
             keys: slice::Iter::default(),
         }
     }
@@ -206,6 +207,8 @@ where
     }
 }
 
+// ----------------------------------------------------------------------------
+
 impl<'a, K, V, C> Iterator for Keys<'a, K, V, C>
 where
     K: Key,
@@ -222,7 +225,7 @@ where
             }
 
             // Fetch the next value and associated keys
-            if let Some((_, keys)) = self.ordering.next() {
+            if let Some(keys) = self.ordering.next() {
                 self.keys = keys.iter();
             } else {
                 break;
@@ -239,6 +242,8 @@ where
         self.ordering.size_hint()
     }
 }
+
+// ----------------------------------------------------------------------------
 
 impl<'a, K, V, C> Iterator for Values<'a, K, V, C>
 where

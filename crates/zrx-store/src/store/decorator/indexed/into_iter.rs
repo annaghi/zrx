@@ -25,10 +25,12 @@
 
 //! Store iterator implementations for [`Indexed`].
 
+use ahash::HashMap;
 use std::marker::PhantomData;
 use std::vec;
 
-use crate::store::{Key, StoreMut};
+use crate::store::key::Key;
+use crate::store::StoreMut;
 
 use super::Indexed;
 
@@ -38,7 +40,7 @@ use super::Indexed;
 
 /// Consuming iterator over [`Indexed`].
 #[derive(Debug)]
-pub struct IntoIter<K, V, S> {
+pub struct IntoIter<K, V, S = HashMap<K, V>> {
     /// Underlying store.
     store: S,
     /// Ordering of values.

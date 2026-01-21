@@ -27,9 +27,8 @@
 
 use slab::Slab;
 
-use crate::store::{
-    Key, StoreIterable, StoreIterableMut, StoreKeys, StoreValues,
-};
+use crate::store::key::Key;
+use crate::store::{StoreIterable, StoreIterableMut, StoreKeys, StoreValues};
 
 // ----------------------------------------------------------------------------
 // Structs

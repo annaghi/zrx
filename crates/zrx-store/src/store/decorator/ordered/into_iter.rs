@@ -28,8 +28,9 @@
 use std::collections::btree_map;
 use std::vec;
 
-use crate::store::comparator::Comparable;
-use crate::store::{Key, Store};
+use crate::store::comparator::{Ascending, Comparable};
+use crate::store::key::Key;
+use crate::store::Store;
 
 use super::Ordered;
 
@@ -39,7 +40,7 @@ use super::Ordered;
 
 /// Consuming iterator over [`Ordered`].
 #[derive(Debug)]
-pub struct IntoIter<K, V, C> {
+pub struct IntoIter<K, V, C = Ascending> {
     /// Ordering of values.
     ordering: btree_map::IntoIter<Comparable<V, C>, Vec<K>>,
     /// Current value.

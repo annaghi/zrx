@@ -30,8 +30,9 @@ use std::ptr;
 use std::time::Instant;
 
 use crate::store::decorator::ordered;
+use crate::store::key::Key;
 use crate::store::{
-    Key, StoreIterable, StoreIterableMut, StoreKeys, StoreMut, StoreValues,
+    StoreIterable, StoreIterableMut, StoreKeys, StoreMut, StoreValues,
 };
 
 use super::item::Item;

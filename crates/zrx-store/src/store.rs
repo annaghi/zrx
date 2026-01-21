@@ -23,18 +23,18 @@
 
 // ----------------------------------------------------------------------------
 
-//! Store abstractions and implementations with specific characteristics.
+//! Store abstractions.
 
 use std::borrow::Borrow;
 use std::ops::RangeBounds;
 
+pub mod adapter;
 pub mod behavior;
-pub mod collection;
 pub mod comparator;
 pub mod decorator;
-mod key;
+pub mod key;
 
-pub use key::Key;
+use key::Key;
 
 // ----------------------------------------------------------------------------
 // Traits
@@ -43,11 +43,11 @@ pub use key::Key;
 /// Immutable store.
 ///
 /// This trait defines the required methods for an immutable key-value store,
-/// which can be used in operators to derive state from items. However, it is
-/// only a foundational trait for a set of traits that define complementary
-/// capabilities for stores, like [`StoreMut`] or [`StoreIterable`].
+/// abstracting over implementations like [`HashMap`][] and [`BTreeMap`][]. It
+/// forms the foundation for a set of further traits that define complementary
+/// capabilities for stores, like [`StoreMut`] and [`StoreIterable`].
 ///
-/// There are several related traits, all of which can be composed in trait
+/// There are several of those traits, all of which can be composed in trait
 /// bounds to require specific store capabilities. These are:
 ///
 /// - [`StoreMut`]: Mutable store
@@ -59,15 +59,16 @@ pub use key::Key;
 /// - [`StoreRange`]: Immutable store that is iterable over a range
 ///
 /// This trait is implemented for [`HashMap`][] and [`BTreeMap`][], as well as
-/// for the third-party [`litemap`] crate, the latter of which is available when
-/// the corresponding feature is enabled. Note that stores are not thread-safe,
-/// so they can't be shared among worker threads.
+/// all of the store [`decorators`][] that allow to wrap stores with additional
+/// capabilities. Note that stores are not thread-safe, so they can't be shared
+/// among worker threads.
 ///
 /// All methods deliberately have [`Infallible`] signatures, as stores must be
 /// fast and reliable, and should never fail under normal circumstances. Stores
 /// should not need to serialize data, write to the filesystem, or send data
 /// over the network. They should only have in-memory representations.
 ///
+/// [`decorators`]: crate::store::decorator
 /// [`BTreeMap`]: std::collections::BTreeMap
 /// [`HashMap`]: std::collections::HashMap
 /// [`Infallible`]: std::convert::Infallible
@@ -115,7 +116,7 @@ where
 /// Mutable store.
 ///
 /// This trait extends [`Store`], requiring further additional mutable methods
-/// which can be used in operators to derive state from incoming events.
+/// which can be used to alter the store, like inserting and removing items.
 ///
 /// # Examples
 ///
@@ -202,7 +203,7 @@ where
 /// Immutable store that is iterable.
 ///
 /// This trait extends [`Store`], adding iteration capabilities as a further
-/// requirement, so stores can be enumerated in operators.
+/// requirement, so a store can enumerate its items.
 ///
 /// # Examples
 ///
@@ -236,7 +237,7 @@ where
 /// Mutable store that is iterable.
 ///
 /// This trait extends [`StoreMut`], adding mutable iteration capabilities as a
-/// requirement, so stores can be enumerated in operators.
+/// requirement, so a store can enumerate its items mutably.
 ///
 /// # Examples
 ///
@@ -270,7 +271,7 @@ where
 /// Immutable store that is iterable over its keys.
 ///
 /// This trait extends [`Store`], adding key iteration capabilities as a
-/// requirement, so stores can be enumerated in operators.
+/// requirement, so a store can enumerate its keys.
 ///
 /// # Examples
 ///
@@ -303,7 +304,7 @@ where
 /// Immutable store that is iterable over its values.
 ///
 /// This trait extends [`Store`], adding value iteration capabilities as a
-/// requirement, so stores can be enumerated in operators.
+/// requirement, so a store can enumerate its values.
 ///
 /// # Examples
 ///
@@ -336,7 +337,7 @@ where
 /// Immutable store that is iterable over a range.
 ///
 /// This trait extends [`Store`], adding iteration capabilities as a further
-/// requirement, so ranges of stores can be enumerated in operators.
+/// requirement, so a store can enumerate its items over a given range.
 ///
 /// # Examples
 ///

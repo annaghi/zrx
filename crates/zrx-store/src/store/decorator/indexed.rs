@@ -33,7 +33,8 @@ use std::marker::PhantomData;
 use std::ops::{Index, Range};
 
 use crate::store::comparator::{Ascending, Comparator};
-use crate::store::{Key, Store, StoreMut};
+use crate::store::key::Key;
+use crate::store::{Store, StoreIterable, StoreMut};
 
 mod into_iter;
 mod iter;
@@ -647,6 +648,38 @@ where
             store.insert(key, value);
         }
         store
+    }
+}
+
+#[allow(clippy::into_iter_without_iter)]
+impl<'a, K, V, S, C> IntoIterator for &'a Indexed<K, V, S, C>
+where
+    K: Key,
+    S: StoreIterable<K, V>,
+{
+    type Item = (&'a K, &'a V);
+    type IntoIter = Iter<'a, K, V, S>;
+
+    /// Creates an iterator over the store.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zrx_store::decorator::Indexed;
+    /// use zrx_store::{StoreIterable, StoreMut};
+    ///
+    /// // Create store and initial state
+    /// let mut store = Indexed::default();
+    /// store.insert("key", 42);
+    ///
+    /// // Create iterator over the store
+    /// for (key, value) in &store {
+    ///     println!("{key}: {value}");
+    /// }
+    /// ```
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
     }
 }
 

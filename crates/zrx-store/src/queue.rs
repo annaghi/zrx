@@ -32,7 +32,8 @@ use std::time::Instant;
 use std::{fmt, mem};
 
 use crate::store::decorator::Ordered;
-use crate::store::{Key, Store, StoreIterable, StoreMut, StoreMutRef};
+use crate::store::key::Key;
+use crate::store::{Store, StoreIterable, StoreMut, StoreMutRef};
 
 mod item;
 mod iter;
