@@ -377,7 +377,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a key iterator over the store.
+    /// Creates an iterator over the keys of a store.
     ///
     /// # Examples
     ///
@@ -409,7 +409,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a value iterator over the store.
+    /// Creates an iterator over the values of a store.
     ///
     /// # Examples
     ///
@@ -441,7 +441,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a range iterator over the store.
+    /// Creates an iterator over a range of items in a store.
     ///
     /// # Examples
     ///
@@ -559,7 +559,7 @@ where
     type Item = (K, V);
     type IntoIter = S::IntoIter;
 
-    /// Creates an iterator over the store.
+    /// Creates an iterator over the items of a store.
     ///
     /// This method consumes the store, and collects it into a vector, since
     /// there's currently no way to implement this due to the absence of ATPIT
@@ -595,7 +595,7 @@ where
     type Item = (&'a K, &'a V);
     type IntoIter = S::Iter<'a>;
 
-    /// Creates an iterator over the store.
+    /// Creates an iterator over the items of a store.
     ///
     /// # Examples
     ///

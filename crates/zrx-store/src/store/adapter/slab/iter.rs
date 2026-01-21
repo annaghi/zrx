@@ -34,25 +34,25 @@ use crate::store::{StoreIterable, StoreIterableMut, StoreKeys, StoreValues};
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Iterator over [`Slab`].
+/// Iterator over the items of a [`Slab`].
 pub struct Iter<'a, K, V> {
     /// Inner iterator.
     inner: slab::Iter<'a, (K, V)>,
 }
 
-/// Mutable iterator over [`Slab`].
+/// Mutable iterator over the items of a [`Slab`].
 pub struct IterMut<'a, K, V> {
     /// Inner iterator.
     inner: slab::IterMut<'a, (K, V)>,
 }
 
-/// Key iterator over [`Slab`].
+/// Iterator over the keys of a [`Slab`].
 pub struct Keys<'a, K, V> {
     /// Inner iterator.
     inner: slab::Iter<'a, (K, V)>,
 }
 
-/// Value iterator over [`Slab`].
+/// Iterator over the values of a [`Slab`].
 pub struct Values<'a, K, V> {
     /// Inner iterator.
     inner: slab::Iter<'a, (K, V)>,
@@ -70,7 +70,7 @@ where
     where
         Self: 'a;
 
-    /// Creates an iterator over the store.
+    /// Creates an iterator over the items of a store.
     ///
     /// # Examples
     ///
@@ -101,7 +101,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a mutable iterator over the store.
+    /// Creates a mutable iterator over the items of a store.
     ///
     /// # Examples
     ///
@@ -132,7 +132,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a key iterator over the store.
+    /// Creates an iterator over the keys of a store.
     ///
     /// # Examples
     ///
@@ -163,7 +163,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a values iterator over the store.
+    /// Creates an iterator over the values of a store.
     ///
     /// # Examples
     ///

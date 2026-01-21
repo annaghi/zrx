@@ -48,7 +48,7 @@ where
     where
         Self: 'a;
 
-    /// Creates an iterator over the store.
+    /// Creates an iterator over the items of a store.
     ///
     /// # Examples
     ///
@@ -80,7 +80,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a mutable iterator over the store.
+    /// Creates a mutable iterator over the items of a store.
     ///
     /// # Examples
     ///
@@ -112,7 +112,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a key iterator over the store.
+    /// Creates an iterator over the keys of a store.
     ///
     /// # Examples
     ///
@@ -144,7 +144,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a value iterator over the store.
+    /// Creates an iterator over the values of a store.
     ///
     /// # Examples
     ///
@@ -177,7 +177,7 @@ where
     where
         Self: 'a;
 
-    /// Creates an iterator over the store.
+    /// Creates an iterator over the items of a store.
     ///
     /// # Examples
     ///
@@ -208,7 +208,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a mutable iterator over the store.
+    /// Creates a mutable iterator over the items of a store.
     ///
     /// # Examples
     ///
@@ -239,7 +239,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a key iterator over the store.
+    /// Creates an iterator over the keys of a store.
     ///
     /// # Examples
     ///
@@ -270,7 +270,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a value iterator over the store.
+    /// Creates an iterator over the values of a store.
     ///
     /// # Examples
     ///
@@ -301,7 +301,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a range iterator over the store.
+    /// Creates an iterator over a range of items in a store.
     ///
     /// # Examples
     ///

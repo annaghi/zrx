@@ -42,7 +42,7 @@ use super::Queue;
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Iterator over [`Queue`].
+/// Iterator over the items of a [`Queue`].
 pub struct Iter<'a, K, V>
 where
     K: Key + 'a,
@@ -55,7 +55,7 @@ where
     deadline: Instant,
 }
 
-/// Mutable iterator over [`Queue`].
+/// Mutable iterator over the items of a [`Queue`].
 pub struct IterMut<'a, K, V>
 where
     K: Key + 'a,
@@ -68,7 +68,7 @@ where
     deadline: Instant,
 }
 
-/// Key iterator over [`Queue`].
+/// Iterator over the keys of a [`Queue`].
 pub struct Keys<'a, K>
 where
     K: Key + 'a,
@@ -79,7 +79,7 @@ where
     deadline: Instant,
 }
 
-/// Value iterator over [`Queue`].
+/// Iterator over the values of a [`Queue`].
 pub struct Values<'a, K, V>
 where
     K: Key + 'a,
@@ -105,7 +105,7 @@ where
     where
         Self: 'a;
 
-    /// Creates an iterator over the store.
+    /// Creates an iterator over the items of a queue.
     ///
     /// # Examples
     ///
@@ -141,7 +141,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a mutable iterator over the queue.
+    /// Creates a mutable iterator over the items of a queue.
     ///
     /// # Examples
     ///
@@ -177,7 +177,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a key iterator over the queue.
+    /// Creates an iterator over the keys of a queue.
     ///
     /// # Examples
     ///
@@ -212,7 +212,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a value iterator over the store.
+    /// Creates an iterator over the values of a store.
     ///
     /// # Examples
     ///

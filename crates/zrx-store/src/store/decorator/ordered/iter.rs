@@ -38,7 +38,7 @@ use super::Ordered;
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Iterator over [`Ordered`].
+/// Iterator over the items of an [`Ordered`] store.
 pub struct Iter<'a, K, V, C = Ascending> {
     /// Ordering of values.
     ordering: btree_map::Iter<'a, Comparable<V, C>, Vec<K>>,
@@ -48,7 +48,7 @@ pub struct Iter<'a, K, V, C = Ascending> {
     keys: slice::Iter<'a, K>,
 }
 
-/// Key iterator over [`Ordered`].
+/// Iterator over the keys of an [`Ordered`] store.
 pub struct Keys<'a, K, V, C = Ascending> {
     /// Ordering of values.
     ordering: btree_map::Values<'a, Comparable<V, C>, Vec<K>>,
@@ -56,7 +56,7 @@ pub struct Keys<'a, K, V, C = Ascending> {
     keys: slice::Iter<'a, K>,
 }
 
-/// Value iterator over [`Ordered`].
+/// Iterator over the values of an [`Ordered`] store.
 pub struct Values<'a, K, V, C = Ascending> {
     /// Ordering of values.
     ordering: btree_map::Keys<'a, Comparable<V, C>, Vec<K>>,
@@ -75,7 +75,7 @@ where
     where
         Self: 'a;
 
-    /// Creates an iterator over the store.
+    /// Creates an iterator over the items of a store.
     ///
     /// # Examples
     ///
@@ -111,7 +111,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a key iterator over the store.
+    /// Creates an iterator over the keys of a store.
     ///
     /// # Examples
     ///
@@ -146,7 +146,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a value iterator over the store.
+    /// Creates an iterator over the values of a store.
     ///
     /// # Examples
     ///

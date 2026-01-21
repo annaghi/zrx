@@ -39,7 +39,7 @@ use super::Tracked;
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Iterator over changed items of [`Tracked`].
+/// Iterator over the changes of a [`Tracked`] store.
 pub struct Changes<'a, K, V, S = HashMap<K, V>>
 where
     K: Key,
@@ -62,7 +62,7 @@ where
     K: Key,
     S: Store<K, V>,
 {
-    /// Creates a change iterator over the store.
+    /// Creates an iterator over the tracked changes of a store.
     ///
     /// This method returns an iterator over all changed keys since the last
     /// call to this method. The iterator yields tuples of keys and optional

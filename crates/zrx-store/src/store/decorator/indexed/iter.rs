@@ -39,7 +39,7 @@ use super::Indexed;
 // Structs
 // ----------------------------------------------------------------------------
 
-/// Iterator over [`Indexed`].
+/// Iterator over the items of an [`Indexed`] store.
 pub struct Iter<'a, K, V, S = HashMap<K, V>> {
     /// Underlying store.
     store: &'a S,
@@ -49,7 +49,7 @@ pub struct Iter<'a, K, V, S = HashMap<K, V>> {
     marker: PhantomData<V>,
 }
 
-/// Value iterator over [`Indexed`].
+/// Iterator over the values of an [`Indexed`] store.
 pub struct Values<'a, K, V, S = HashMap<K, V>> {
     /// Underlying store.
     store: &'a S,
@@ -69,7 +69,7 @@ where
     V: Ord,
     S: Store<K, V>,
 {
-    /// Creates a range iterator over the store.
+    /// Creates an iterator over a range of items in a store.
     ///
     /// This method is not implemented as part of [`StoreRange`][], because it
     /// deviates from the trait, as it uses numeric indices instead of keys.
@@ -141,7 +141,7 @@ where
     where
         Self: 'a;
 
-    /// Creates an iterator over the store.
+    /// Creates an iterator over the items of a store.
     ///
     /// # Examples
     ///
@@ -177,7 +177,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a key iterator over the store.
+    /// Creates an iterator over the keys of a store.
     ///
     /// # Examples
     ///
@@ -209,7 +209,7 @@ where
     where
         Self: 'a;
 
-    /// Creates a value iterator over the store.
+    /// Creates an iterator over the values of a store.
     ///
     /// # Examples
     ///
@@ -314,5 +314,5 @@ where
 // Type aliases
 // ----------------------------------------------------------------------------
 
-/// Key iterator over [`Indexed`].
+/// Iterator over the keys of an [`Indexed`] store.
 pub type Keys<'a, K> = slice::Iter<'a, K>;

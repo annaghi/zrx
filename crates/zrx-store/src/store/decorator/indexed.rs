@@ -660,7 +660,7 @@ where
     type Item = (&'a K, &'a V);
     type IntoIter = Iter<'a, K, V, S>;
 
-    /// Creates an iterator over the store.
+    /// Creates an iterator over the items of a store.
     ///
     /// # Examples
     ///
