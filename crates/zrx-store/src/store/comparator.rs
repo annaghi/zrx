@@ -52,11 +52,11 @@ pub trait Comparator<T> {
 // ----------------------------------------------------------------------------
 
 /// Comparator for ascending order.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Ascending;
 
 /// Comparator for descending order.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Descending;
 
 // ----------------------------------------------------------------------------

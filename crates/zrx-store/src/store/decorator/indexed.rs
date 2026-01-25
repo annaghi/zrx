@@ -99,6 +99,7 @@ pub use iter::{Iter, Keys, Values};
 ///     println!("{key}: {value}");
 /// }
 /// ```
+#[derive(Clone, PartialEq, Eq)]
 pub struct Indexed<K, V, S = HashMap<K, V>, C = Ascending>
 where
     K: Key,

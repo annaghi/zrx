@@ -80,6 +80,7 @@ pub use iter::{Iter, Keys, Values};
 ///     println!("{key}: {value}");
 /// }
 /// ```
+#[derive(Clone)]
 pub struct Queue<K, V, S = HashMap<K, Item>>
 where
     K: Key,

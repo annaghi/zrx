@@ -78,6 +78,7 @@ pub use changes::Changes;
 ///     println!("{key}: {value}");
 /// }
 /// ```
+#[derive(Clone, PartialEq, Eq)]
 pub struct Tracked<K, V, S = HashMap<K, V>>
 where
     K: Key,
