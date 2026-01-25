@@ -111,8 +111,10 @@ where
     /// use zrx_store::decorator::Ordered;
     /// use zrx_store::StoreMut;
     ///
-    /// // Create store and initial state
+    /// // Create store
     /// let mut store = Ordered::<_, _, HashMap<_, _>>::new();
+    ///
+    /// // Insert value
     /// store.insert("key", 42);
     /// ```
     #[inline]
@@ -366,9 +368,11 @@ where
     /// use zrx_store::decorator::Ordered;
     /// use zrx_store::{StoreMut, StoreWithComparator};
     ///
-    /// // Create store and initial state
+    /// // Create store
     /// let mut store: Ordered::<_, _, HashMap<_, _>, _> =
     ///     Ordered::with_comparator(Descending);
+    ///
+    /// // Insert value
     /// store.insert("key", 42);
     /// ```
     fn with_comparator(comparator: C) -> Self {

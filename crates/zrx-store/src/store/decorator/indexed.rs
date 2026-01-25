@@ -134,8 +134,10 @@ where
     /// use zrx_store::decorator::Indexed;
     /// use zrx_store::StoreMut;
     ///
-    /// // Create store and initial state
+    /// // Create store
     /// let mut store = Indexed::<_, _, HashMap<_, _>>::new();
+    ///
+    /// // Insert value
     /// store.insert("key", 42);
     /// ```
     #[inline]
@@ -553,9 +555,11 @@ where
     /// use zrx_store::decorator::Indexed;
     /// use zrx_store::{StoreMut, StoreWithComparator};
     ///
-    /// // Create store and initial state
+    /// // Create store
     /// let mut store: Indexed::<_, _, HashMap<_, _>, _> =
     ///     Indexed::with_comparator(Descending);
+    ///
+    /// // Insert value
     /// store.insert("key", 42);
     /// ```
     fn with_comparator(comparator: C) -> Self {
