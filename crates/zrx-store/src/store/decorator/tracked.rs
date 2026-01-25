@@ -201,7 +201,7 @@ where
     K: Key,
     S: StoreMut<K, V>,
 {
-    /// Updates the value identified by the key.
+    /// Inserts the value identified by the key.
     ///
     /// # Examples
     ///
@@ -221,7 +221,7 @@ where
         self.store.insert(key, value)
     }
 
-    /// Updates the value identified by the key if it changed.
+    /// Inserts the value identified by the key if it changed.
     ///
     /// # Examples
     ///
