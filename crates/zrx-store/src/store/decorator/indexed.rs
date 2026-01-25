@@ -543,7 +543,7 @@ impl<K, V, S, C> StoreWithComparator<K, V, C> for Indexed<K, V, S, C>
 where
     K: Key,
     S: Store<K, V> + Default,
-    C: Comparator<V> + Clone,
+    C: Comparator<V>,
 {
     /// Creates a store with the given comparator.
     ///
