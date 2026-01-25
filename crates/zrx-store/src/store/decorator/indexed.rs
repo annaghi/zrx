@@ -403,8 +403,10 @@ where
     /// use zrx_store::decorator::Indexed;
     /// use zrx_store::StoreMut;
     ///
-    /// // Create store and insert value
+    /// // Create store
     /// let mut store = Indexed::default();
+    ///
+    /// // Insert value
     /// store.insert("key", 42);
     /// ```
     #[inline]

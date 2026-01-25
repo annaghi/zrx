@@ -343,8 +343,10 @@ where
     /// use zrx_store::queue::Queue;
     /// use zrx_store::StoreMut;
     ///
-    /// // Create queue and insert value
+    /// // Create queue
     /// let mut queue = Queue::default();
+    ///
+    /// // Insert value
     /// queue.insert("key", 42);
     /// ```
     #[inline]

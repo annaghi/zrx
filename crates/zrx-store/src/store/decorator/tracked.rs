@@ -207,8 +207,10 @@ where
     /// use zrx_store::decorator::Tracked;
     /// use zrx_store::StoreMut;
     ///
-    /// // Create store and insert value
+    /// // Create store
     /// let mut store = Tracked::default();
+    ///
+    /// // Insert value
     /// store.insert("key", 42);
     /// ```
     #[inline]
