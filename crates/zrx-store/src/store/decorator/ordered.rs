@@ -32,7 +32,7 @@ use std::fmt;
 
 use crate::store::comparator::{Ascending, Comparable, Comparator};
 use crate::store::key::Key;
-use crate::store::{Store, StoreIterable, StoreMut};
+use crate::store::{Store, StoreIterable, StoreMut, StoreWithComparator};
 
 mod into_iter;
 mod iter;
@@ -132,33 +132,6 @@ where
     S: Store<K, V>,
     C: Comparator<V> + Clone,
 {
-    /// Creates an ordering decorator over a store with the given comparator.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::HashMap;
-    /// use zrx_store::comparator::Descending;
-    /// use zrx_store::decorator::Ordered;
-    /// use zrx_store::StoreMut;
-    ///
-    /// // Create store and initial state
-    /// let mut store: Ordered::<_, _, HashMap<_, _>, _> =
-    ///     Ordered::with_comparator(Descending);
-    /// store.insert("key", 42);
-    /// ```
-    #[must_use]
-    pub fn with_comparator(comparator: C) -> Self
-    where
-        S: Default,
-    {
-        Self {
-            store: S::default(),
-            ordering: BTreeMap::new(),
-            comparator,
-        }
-    }
-
     /// Updates the given key-value pair in the ordering.
     fn update_ordering(&mut self, value: V, key: K) {
         self.ordering
@@ -370,6 +343,38 @@ where
     fn clear(&mut self) {
         self.store.clear();
         self.ordering.clear();
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+impl<K, V, S, C> StoreWithComparator<K, V, C> for Ordered<K, V, S, C>
+where
+    K: Key,
+    S: Store<K, V> + Default,
+    C: Comparator<V> + Clone,
+{
+    /// Creates a store with the given comparator.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::HashMap;
+    /// use zrx_store::comparator::Descending;
+    /// use zrx_store::decorator::Ordered;
+    /// use zrx_store::{StoreMut, StoreWithComparator};
+    ///
+    /// // Create store and initial state
+    /// let mut store: Ordered::<_, _, HashMap<_, _>, _> =
+    ///     Ordered::with_comparator(Descending);
+    /// store.insert("key", 42);
+    /// ```
+    fn with_comparator(comparator: C) -> Self {
+        Self {
+            store: S::default(),
+            ordering: BTreeMap::new(),
+            comparator,
+        }
     }
 }
 
