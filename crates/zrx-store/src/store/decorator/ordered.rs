@@ -480,8 +480,10 @@ where
     /// use zrx_store::decorator::Ordered;
     /// use zrx_store::StoreMut;
     ///
-    /// // Create store and initial state
+    /// // Create store
     /// let mut store = Ordered::default();
+    ///
+    /// // Insert value
     /// store.insert("key", 42);
     /// ```
     #[inline]
