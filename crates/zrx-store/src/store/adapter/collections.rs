@@ -113,8 +113,10 @@ where
     /// use std::collections::HashMap;
     /// use zrx_store::StoreMut;
     ///
-    /// // Create store and insert value
+    /// // Create store
     /// let mut store = HashMap::new();
+    ///
+    /// // Insert value
     /// store.insert("key", 42);
     /// ```
     #[inline]
@@ -360,8 +362,10 @@ where
     /// use std::collections::BTreeMap;
     /// use zrx_store::StoreMut;
     ///
-    /// // Create store and insert value
+    /// // Create store
     /// let mut store = BTreeMap::new();
+    ///
+    /// // Insert value
     /// store.insert("key", 42);
     /// ```
     #[inline]

@@ -34,7 +34,7 @@ use std::ops::{Index, Range};
 
 use crate::store::comparator::{Ascending, Comparator};
 use crate::store::key::Key;
-use crate::store::{Store, StoreIterable, StoreMut};
+use crate::store::{Store, StoreIterable, StoreMut, StoreWithComparator};
 
 mod into_iter;
 mod iter;
@@ -99,6 +99,7 @@ pub use iter::{Iter, Keys, Values};
 ///     println!("{key}: {value}");
 /// }
 /// ```
+#[derive(Clone, PartialEq, Eq)]
 pub struct Indexed<K, V, S = HashMap<K, V>, C = Ascending>
 where
     K: Key,
@@ -133,8 +134,10 @@ where
     /// use zrx_store::decorator::Indexed;
     /// use zrx_store::StoreMut;
     ///
-    /// // Create store and initial state
+    /// // Create store
     /// let mut store = Indexed::<_, _, HashMap<_, _>>::new();
+    ///
+    /// // Insert value
     /// store.insert("key", 42);
     /// ```
     #[inline]
@@ -154,34 +157,6 @@ where
     S: Store<K, V>,
     C: Comparator<V>,
 {
-    /// Creates an ordering decorator over a store with the given comparator.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::HashMap;
-    /// use zrx_store::comparator::Descending;
-    /// use zrx_store::decorator::Indexed;
-    /// use zrx_store::StoreMut;
-    ///
-    /// // Create store and initial state
-    /// let mut store: Indexed::<_, _, HashMap<_, _>, _> =
-    ///     Indexed::with_comparator(Descending);
-    /// store.insert("key", 42);
-    /// ```
-    #[must_use]
-    pub fn with_comparator(comparator: C) -> Self
-    where
-        S: Default,
-    {
-        Self {
-            store: S::default(),
-            ordering: Vec::new(),
-            comparator,
-            marker: PhantomData,
-        }
-    }
-
     /// Returns the position of the key-value pair in the ordering, or the
     /// position where it should be inserted if the key does not exist.
     fn position<Q>(&self, key: &Q, value: &V) -> Result<usize, usize>
@@ -430,8 +405,10 @@ where
     /// use zrx_store::decorator::Indexed;
     /// use zrx_store::StoreMut;
     ///
-    /// // Create store and insert value
+    /// // Create store
     /// let mut store = Indexed::default();
+    ///
+    /// // Insert value
     /// store.insert("key", 42);
     /// ```
     #[inline]
@@ -557,6 +534,41 @@ where
     fn clear(&mut self) {
         self.store.clear();
         self.ordering.clear();
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+impl<K, V, S, C> StoreWithComparator<K, V, C> for Indexed<K, V, S, C>
+where
+    K: Key,
+    S: Store<K, V> + Default,
+    C: Comparator<V> + Clone,
+{
+    /// Creates a store with the given comparator.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::HashMap;
+    /// use zrx_store::comparator::Descending;
+    /// use zrx_store::decorator::Indexed;
+    /// use zrx_store::{StoreMut, StoreWithComparator};
+    ///
+    /// // Create store
+    /// let mut store: Indexed::<_, _, HashMap<_, _>, _> =
+    ///     Indexed::with_comparator(Descending);
+    ///
+    /// // Insert value
+    /// store.insert("key", 42);
+    /// ```
+    fn with_comparator(comparator: C) -> Self {
+        Self {
+            store: S::default(),
+            ordering: Vec::new(),
+            comparator,
+            marker: PhantomData,
+        }
     }
 }
 
@@ -704,8 +716,10 @@ where
     /// use zrx_store::decorator::Indexed;
     /// use zrx_store::StoreMut;
     ///
-    /// // Create store and initial state
+    /// // Create store
     /// let mut store = Indexed::default();
+    ///
+    /// // Insert value
     /// store.insert("key", 42);
     /// ```
     #[inline]

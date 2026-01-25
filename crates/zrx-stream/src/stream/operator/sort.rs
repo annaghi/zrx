@@ -35,7 +35,7 @@ use zrx_scheduler::action::Descriptor;
 use zrx_scheduler::effect::Item;
 use zrx_scheduler::{Id, Value};
 use zrx_store::decorator::Indexed;
-use zrx_store::{Comparator, Store};
+use zrx_store::{Comparator, Store, StoreWithComparator};
 
 use crate::stream::value::Position;
 use crate::stream::Stream;
@@ -70,7 +70,7 @@ where
 
     pub fn sort_with<F>(&self, f: F) -> Stream<I, Position<T>>
     where
-        F: Fn(&T, &T) -> Ordering + 'static,
+        F: Fn(&T, &T) -> Ordering + Clone + 'static,
     {
         self.with_operator(Sort {
             store: Indexed::with_comparator(f),
@@ -79,7 +79,7 @@ where
 
     pub fn sort_by<F, K>(&self, f: F) -> Stream<I, Position<T>>
     where
-        F: Fn(&T) -> K + 'static,
+        F: Fn(&T) -> K + Clone + 'static,
         K: Ord,
     {
         self.with_operator(Sort {

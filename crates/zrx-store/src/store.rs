@@ -34,6 +34,7 @@ pub mod comparator;
 pub mod decorator;
 pub mod key;
 
+use comparator::Comparator;
 use key::Key;
 
 // ----------------------------------------------------------------------------
@@ -369,6 +370,37 @@ where
     fn range<R>(&self, range: R) -> Self::Range<'_>
     where
         R: RangeBounds<K>;
+}
+
+// ----------------------------------------------------------------------------
+
+/// Creates a store with a comparator.
+///
+/// This trait extends [`Store`], adding the capability to create a store with
+/// a custom comparator, allowing to customize the ordering of values.
+///
+/// # Examples
+///
+/// ```
+/// use std::collections::HashMap;
+/// use zrx_store::comparator::Descending;
+/// use zrx_store::decorator::Ordered;
+/// use zrx_store::{StoreMut, StoreWithComparator};
+///
+/// // Create store
+/// let mut store: Ordered::<_, _, HashMap<_, _>, _> =
+///     Ordered::with_comparator(Descending);
+///
+/// // Insert value
+/// store.insert("key", 42);
+/// ```
+pub trait StoreWithComparator<K, V, C>: Store<K, V>
+where
+    K: Key,
+    C: Comparator<V>,
+{
+    /// Creates a store with the given comparator.
+    fn with_comparator(comparator: C) -> Self;
 }
 
 // ----------------------------------------------------------------------------

@@ -114,8 +114,10 @@ where
     /// use slab::Slab;
     /// use zrx_store::StoreMut;
     ///
-    /// // Create store and insert value
+    /// // Create store
     /// let mut store = Slab::new();
+    ///
+    /// // Insert value
     /// StoreMut::insert(&mut store, "key", 42);
     /// ```
     #[inline]

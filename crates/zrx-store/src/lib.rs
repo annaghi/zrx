@@ -36,5 +36,5 @@ pub use store::key::Key;
 pub use store::{
     Store, StoreFromIterator, StoreIntoIterator, StoreIterable,
     StoreIterableMut, StoreKeys, StoreMut, StoreMutRef, StoreRange,
-    StoreValues,
+    StoreValues, StoreWithComparator,
 };
