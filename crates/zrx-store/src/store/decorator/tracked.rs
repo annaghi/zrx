@@ -473,6 +473,38 @@ where
 
 // ----------------------------------------------------------------------------
 
+impl<K, V, S, C> StoreWithComparator<K, V, C> for Tracked<K, V, S>
+where
+    K: Key,
+    S: Store<K, V> + StoreWithComparator<K, V, C>,
+    C: Comparator<V>,
+{
+    /// Creates a store with the given comparator.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::HashMap;
+    /// use zrx_store::comparator::Descending;
+    /// use zrx_store::decorator::{Ordered, Tracked};
+    /// use zrx_store::{StoreMut, StoreWithComparator};
+    ///
+    /// // Create store and initial state
+    /// let mut store: Tracked::<_, _, Ordered<_, _, HashMap<_, _>, _>> =
+    ///     Tracked::with_comparator(Descending);
+    /// store.insert("key", 42);
+    /// ```
+    fn with_comparator(comparator: C) -> Self {
+        Self {
+            store: S::with_comparator(comparator),
+            changed: HashSet::default(),
+            marker: PhantomData,
+        }
+    }
+}
+
+// ----------------------------------------------------------------------------
+
 impl<K, V, S> Index<usize> for Tracked<K, V, S>
 where
     K: Key,
@@ -504,38 +536,6 @@ where
     #[inline]
     fn index(&self, n: usize) -> &Self::Output {
         &self.store[n]
-    }
-}
-
-// ----------------------------------------------------------------------------
-
-impl<K, V, S, C> StoreWithComparator<K, V, C> for Tracked<K, V, S>
-where
-    K: Key,
-    S: Store<K, V> + StoreWithComparator<K, V, C>,
-    C: Comparator<V>,
-{
-    /// Creates a store with the given comparator.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::HashMap;
-    /// use zrx_store::comparator::Descending;
-    /// use zrx_store::decorator::{Ordered, Tracked};
-    /// use zrx_store::{StoreMut, StoreWithComparator};
-    ///
-    /// // Create store and initial state
-    /// let mut store: Tracked::<_, _, Ordered<_, _, HashMap<_, _>, _>> =
-    ///     Tracked::with_comparator(Descending);
-    /// store.insert("key", 42);
-    /// ```
-    fn with_comparator(comparator: C) -> Self {
-        Self {
-            store: S::with_comparator(comparator),
-            changed: HashSet::default(),
-            marker: PhantomData,
-        }
     }
 }
 
