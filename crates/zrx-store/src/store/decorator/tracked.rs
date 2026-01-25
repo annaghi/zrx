@@ -511,7 +511,7 @@ where
 impl<K, V, S> FromIterator<(K, V)> for Tracked<K, V, S>
 where
     K: Key,
-    S: StoreMut<K, V> + StoreFromIterator<K, V>,
+    S: Store<K, V> + StoreFromIterator<K, V>,
 {
     /// Creates a store from an iterator.
     ///
