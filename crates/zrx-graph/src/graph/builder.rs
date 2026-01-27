@@ -115,8 +115,8 @@ impl<T, W> Builder<T, W> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn add_node(&mut self, node: T) -> usize {
-        self.nodes.push(node);
+    pub fn add_node(&mut self, data: T) -> usize {
+        self.nodes.push(data);
         self.nodes.len() - 1
     }
 
