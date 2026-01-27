@@ -114,10 +114,7 @@ impl Topology {
     /// # }
     /// ```
     #[must_use]
-    pub fn new<T, W>(builder: &Builder<T, W>) -> Self
-    where
-        W: Clone,
-    {
+    pub fn new<T, W>(builder: &Builder<T, W>) -> Self {
         Self(Rc::new(TopologyInner {
             outgoing: Adjacency::outgoing(builder),
             incoming: Adjacency::incoming(builder),

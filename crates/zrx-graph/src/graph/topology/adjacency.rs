@@ -93,11 +93,13 @@ impl Adjacency {
     /// ```
     #[inline]
     #[must_use]
-    pub fn outgoing<T, W>(builder: &Builder<T, W>) -> Self
-    where
-        W: Clone,
-    {
-        Adjacency::new(builder.len(), builder.edges().to_vec())
+    pub fn outgoing<T, W>(builder: &Builder<T, W>) -> Self {
+        let iter = builder.edges().iter().map(|edge| Edge {
+            source: edge.source,
+            target: edge.target,
+            weight: (),
+        });
+        Adjacency::new(builder.len(), iter.collect())
     }
 
     /// Creates an adjacency list for incoming edges.
@@ -134,14 +136,11 @@ impl Adjacency {
     /// ```
     #[inline]
     #[must_use]
-    pub fn incoming<T, W>(builder: &Builder<T, W>) -> Self
-    where
-        W: Clone,
-    {
+    pub fn incoming<T, W>(builder: &Builder<T, W>) -> Self {
         let iter = builder.edges().iter().map(|edge| Edge {
             source: edge.target,
             target: edge.source,
-            weight: edge.weight.clone(),
+            weight: (),
         });
         Adjacency::new(builder.len(), iter.collect())
     }
