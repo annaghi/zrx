@@ -26,6 +26,7 @@
 //! Identifier.
 
 use std::borrow::Cow;
+use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::PathBuf;
@@ -115,7 +116,7 @@ use uri::Uri;
 /// # Ok(())
 /// # }
 /// ```
-#[derive(Clone, PartialOrd, Ord)]
+#[derive(Clone)]
 pub struct Id {
     /// Formatted string.
     format: Arc<Format<7>>,
@@ -371,6 +372,60 @@ impl PartialEq for Id {
 }
 
 impl Eq for Id {}
+
+// ----------------------------------------------------------------------------
+
+impl PartialOrd for Id {
+    /// Orders two identifiers.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::error::Error;
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// use zrx_id::Id;
+    ///
+    /// // Create and compare identifiers
+    /// let a: Id = "zri:file:::docs:index.md:".parse()?;
+    /// let b: Id = "zri:file:::docs:about.md:".parse()?;
+    /// assert!(a > b);
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Id {
+    /// Orders two identifiers.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::error::Error;
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// use zrx_id::Id;
+    ///
+    /// // Create and compare identifiers
+    /// let a: Id = "zri:file:::docs:index.md:".parse()?;
+    /// let b: Id = "zri:file:::docs:about.md:".parse()?;
+    /// assert!(a > b);
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[inline]
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Fast path - first, we compare for equality by using the precomputed
+        // hashes, as it's a simple and extremely fast integer comparison
+        if self.eq(other) {
+            Ordering::Equal
+        } else {
+            self.format.cmp(&other.format)
+        }
+    }
+}
 
 // ----------------------------------------------------------------------------
 

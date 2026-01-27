@@ -82,10 +82,7 @@ impl<T> Graph<T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn builder<W>() -> Builder<T, W>
-    where
-        W: Clone,
-    {
+    pub fn builder<W>() -> Builder<T, W> {
         Builder {
             nodes: Vec::new(),
             edges: Vec::new(),
@@ -115,8 +112,8 @@ impl<T, W> Builder<T, W> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn add_node(&mut self, node: T) -> usize {
-        self.nodes.push(node);
+    pub fn add_node(&mut self, data: T) -> usize {
+        self.nodes.push(data);
         self.nodes.len() - 1
     }
 
@@ -267,10 +264,7 @@ impl<T, W> Builder<T, W> {
     /// # }
     /// ```
     #[must_use]
-    pub fn build(self) -> Graph<T>
-    where
-        W: Clone,
-    {
+    pub fn build(self) -> Graph<T> {
         Graph {
             topology: Topology::new(&self),
             data: self.nodes,
